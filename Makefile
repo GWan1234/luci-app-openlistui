@@ -3,7 +3,7 @@ include $(TOPDIR)/rules.mk
 PKG_NAME:=luci-app-openlistui
 
 # 自动版本管理系统
-PKG_VERSION_BASE:=0.1
+PKG_VERSION_BASE:=1.0
 PKG_VERSION_PATCH:=$(shell if [ -d .git ]; then git rev-list --count HEAD 2>/dev/null || echo "1"; else echo "1"; fi)
 PKG_VERSION:=$(PKG_VERSION_BASE).$(PKG_VERSION_PATCH)
 

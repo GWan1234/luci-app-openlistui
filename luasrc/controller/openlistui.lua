@@ -875,50 +875,72 @@ function action_status()
     
     -- Only check for running processes if binary exists and version is valid
     if result.binary_exists and result.version ~= "Not installed" and result.version ~= "unknown" then
-        -- Check if OpenList is running from our specific install directory
-        local binary_path = get_openlist_binary_path()
-        local pid_output = util.trim(sys.exec("pgrep -f '" .. binary_path .. "' 2>/dev/null | head -1"))
+        -- Priority 1: Check system paths first (most common installation)
+        local system_paths = {"/usr/bin/openlist", "/usr/local/bin/openlist", "/opt/bin/openlist"}
         
-        -- Verify the PID actually belongs to our binary
-        if pid_output and pid_output ~= "" then
-            local check_pid = tonumber(pid_output)
-            if check_pid then
-                -- First check: verify process exists and is running
-                local proc_status = util.trim(sys.exec("cat /proc/" .. check_pid .. "/status 2>/dev/null | grep '^State:' | awk '{print $2}'"))
-                if proc_status == "R" or proc_status == "S" or proc_status == "D" then
-                    -- Process is running, now verify it's our binary
-                    local proc_exe = util.trim(sys.exec("readlink -f /proc/" .. check_pid .. "/exe 2>/dev/null"))
-                    if proc_exe == binary_path then
-                        openlist_running = true
-                        pid = check_pid
-                    else
-                        -- Fallback: check command line if exe link fails (can happen during startup)
-                        local cmdline = util.trim(sys.exec("cat /proc/" .. check_pid .. "/cmdline 2>/dev/null | tr '\0' ' '"))
-                        if cmdline and cmdline:find(binary_path, 1, true) then
+        for _, sys_path in ipairs(system_paths) do
+            local pid_output = util.trim(sys.exec("pgrep -f '" .. sys_path .. "' 2>/dev/null | head -1"))
+            if pid_output and pid_output ~= "" then
+                local check_pid = tonumber(pid_output)
+                if check_pid then
+                    local proc_status = util.trim(sys.exec("cat /proc/" .. check_pid .. "/status 2>/dev/null | grep '^State:' | awk '{print $2}'"))
+                    if proc_status == "R" or proc_status == "S" or proc_status == "D" then
+                        local proc_exe = util.trim(sys.exec("readlink -f /proc/" .. check_pid .. "/exe 2>/dev/null"))
+                        if proc_exe == sys_path then
                             openlist_running = true
                             pid = check_pid
-                            log_openlistui_operation("STATUS_CHECK_FALLBACK", "Used cmdline fallback for PID " .. check_pid)
+                            log_openlistui_operation("STATUS_CHECK_SYSTEM", "Found OpenList at system path: " .. sys_path .. " PID: " .. check_pid)
+                            break
                         end
                     end
                 end
             end
         end
         
-        -- Additional fallback: check for any openlist process if strict check failed
+        -- Priority 2: Check configured path if not found in system paths
+        if not openlist_running then
+            local binary_path = get_openlist_binary_path()
+            local pid_output = util.trim(sys.exec("pgrep -f '" .. binary_path .. "' 2>/dev/null | head -1"))
+            
+            if pid_output and pid_output ~= "" then
+                local check_pid = tonumber(pid_output)
+                if check_pid then
+                    local proc_status = util.trim(sys.exec("cat /proc/" .. check_pid .. "/status 2>/dev/null | grep '^State:' | awk '{print $2}'"))
+                    if proc_status == "R" or proc_status == "S" or proc_status == "D" then
+                        local proc_exe = util.trim(sys.exec("readlink -f /proc/" .. check_pid .. "/exe 2>/dev/null"))
+                        if proc_exe == binary_path then
+                            openlist_running = true
+                            pid = check_pid
+                            log_openlistui_operation("STATUS_CHECK_CONFIG", "Found OpenList at configured path: " .. binary_path .. " PID: " .. check_pid)
+                        else
+                            -- Fallback: check command line if exe link fails
+                            local cmdline = util.trim(sys.exec("cat /proc/" .. check_pid .. "/cmdline 2>/dev/null | tr '\0' ' '"))
+                            if cmdline and cmdline:find(binary_path, 1, true) then
+                                openlist_running = true
+                                pid = check_pid
+                                log_openlistui_operation("STATUS_CHECK_CMDLINE", "Used cmdline fallback for PID " .. check_pid)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        
+        -- Priority 3: Generic fallback check for any openlist process
         if not openlist_running then
             local fallback_pid = util.trim(sys.exec("pgrep -f 'openlist' 2>/dev/null | head -1"))
             if fallback_pid and fallback_pid ~= "" then
                 local check_pid = tonumber(fallback_pid)
                 if check_pid then
-                    -- Verify it's actually running and related to our installation
                     local proc_status = util.trim(sys.exec("cat /proc/" .. check_pid .. "/status 2>/dev/null | grep '^State:' | awk '{print $2}'"))
                     if proc_status == "R" or proc_status == "S" or proc_status == "D" then
-                        local cmdline = util.trim(sys.exec("cat /proc/" .. check_pid .. "/cmdline 2>/dev/null | tr '\0' ' '"))
-                        -- Check if it's running from our expected location or with our config
-                        if cmdline and (cmdline:find("/usr/bin/openlist", 1, true) or cmdline:find("/tmp/openlist", 1, true)) then
+                        local proc_exe = util.trim(sys.exec("readlink -f /proc/" .. check_pid .. "/exe 2>/dev/null"))
+                        -- Accept any openlist binary in common locations
+                        if proc_exe and (proc_exe:find("/usr/bin/openlist") or proc_exe:find("/usr/local/bin/openlist") or 
+                                        proc_exe:find("/opt/bin/openlist") or proc_exe:find("/tmp/openlist")) then
                             openlist_running = true
                             pid = check_pid
-                            log_openlistui_operation("STATUS_CHECK_FALLBACK", "Used generic openlist process detection for PID " .. check_pid)
+                            log_openlistui_operation("STATUS_CHECK_GENERIC", "Found OpenList via generic search at: " .. proc_exe .. " PID: " .. check_pid)
                         end
                     end
                 end
@@ -985,6 +1007,9 @@ function action_status()
             end
         end
     end
+    
+    -- Log key status fields for debugging
+    log_openlistui_operation("STATUS_RESPONSE", "Status result - running: " .. tostring(result.running) .. ", version: " .. tostring(result.version) .. ", pid: " .. tostring(result.pid))
     
     http.prepare_content("application/json")
     http.write_json(result)
