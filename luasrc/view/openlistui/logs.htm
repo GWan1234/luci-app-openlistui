@@ -6,6 +6,21 @@ Licensed under the GPL-3.0 License
 <%+header%>
 
 <style type="text/css">
+.dashboard-container {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.main-container {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 30px;
+    border: 1px solid #e2e8f0;
+    margin: 0;
+}
+
 .logs-container {
     margin: 10px 0;
     position: relative;
@@ -492,10 +507,9 @@ window.addEventListener('beforeunload', function() {
 });
 //]]></script>
 
-<div class="cbi-map">
-    <div class="cbi-section">
-        <div class="cbi-section-node">
-            <div class="logs-container">
+<div class="dashboard-container">
+    <div class="main-container">
+        <div class="logs-container">
                 <div class="log-controls">
                     <div class="form-inline">
                         <label for="log-source">日志源:</label>
@@ -547,7 +561,6 @@ window.addEventListener('beforeunload', function() {
                 <div id="log-container" class="log-display"></div>
                 
                 <div id="log-stats" class="log-stats">加载中...</div>
-            </div>
         </div>
     </div>
 </div>
