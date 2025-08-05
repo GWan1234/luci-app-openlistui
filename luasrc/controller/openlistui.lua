@@ -1,5 +1,5 @@
--- Copyright 2025 OpenList Team
--- Licensed under the GPL-3.0 License
+-- Copyright 2025 Drfccv
+-- Licensed under the MIT License
 
 module("luci.controller.openlistui", package.seeall)
 

@@ -1,5 +1,5 @@
--- Copyright 2025 OpenList Team
--- Licensed under the GPL-3.0 License
+-- Copyright 2025 Drfccv
+-- Licensed under the MIT License
 
 local uci = require "luci.model.uci".cursor()
 local fs = require "nixio.fs"
