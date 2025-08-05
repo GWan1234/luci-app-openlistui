@@ -1,0 +1,62 @@
+#!/bin/sh
+
+# OpenList UI package post-installation script
+
+log_message() {
+    echo "luci-app-openlistui: $1"
+}
+
+log_message "Post-installation script starting..."
+
+# Check if UCI is available
+if ! command -v uci >/dev/null 2>&1; then
+    log_message "WARNING: UCI command not found, skipping configuration"
+    exit 0
+fi
+
+# Check for existing UCI configuration or upgrade backup
+BACKUP_EXISTS=0
+if uci -q get openlistui >/dev/null 2>&1; then
+    log_message "Backing up existing UCI configuration"
+    uci export openlistui > /tmp/openlistui.backup 2>/dev/null || true
+    BACKUP_EXISTS=1
+elif [ -f "/tmp/openlistui.upgrade.backup" ]; then
+    log_message "Found upgrade backup, will restore after defaults"
+    cp /tmp/openlistui.upgrade.backup /tmp/openlistui.backup 2>/dev/null || true
+    BACKUP_EXISTS=1
+fi
+
+# Create necessary directories safely
+mkdir -p /etc/openlistui 2>/dev/null || true
+mkdir -p /tmp/openlist 2>/dev/null || true
+
+# Set correct permissions safely
+chmod 755 /etc/openlistui 2>/dev/null || true
+chmod 755 /tmp/openlist 2>/dev/null || true
+
+# Enable service safely
+if [ -x "/etc/init.d/openlistui" ]; then
+    /etc/init.d/openlistui enable 2>/dev/null || true
+    log_message "Service enabled"
+fi
+
+# Restore UCI configuration if backup exists
+if [ "$BACKUP_EXISTS" = "1" ] && [ -f "/tmp/openlistui.backup" ]; then
+    log_message "Restoring UCI configuration from backup"
+    # Wait a moment for uci-defaults to complete
+    sleep 2
+    uci import openlistui < /tmp/openlistui.backup 2>/dev/null || true
+    uci commit openlistui 2>/dev/null || true
+    rm -f /tmp/openlistui.backup 2>/dev/null || true
+    rm -f /tmp/openlistui.upgrade.backup 2>/dev/null || true
+    log_message "UCI configuration restored"
+fi
+
+# Clear LuCI cache safely
+rm -rf /tmp/luci-modulecache/* 2>/dev/null || true
+rm -rf /tmp/luci-indexcache/* 2>/dev/null || true
+log_message "Cleared LuCI cache"
+
+log_message "Post-installation script completed successfully"
+
+exit 0

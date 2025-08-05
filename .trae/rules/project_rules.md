@@ -1,0 +1,2 @@
+1.当前项目是OpenList(Alist分支)的OpenWrt LuCI应用
+2.请不要尝试运行项目中的脚本或Linux指令，本机仅用于开发，文件需要在WSL编译后在OpenWrt测试

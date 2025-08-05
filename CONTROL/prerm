@@ -1,0 +1,36 @@
+#!/bin/sh
+
+# OpenList UI package pre-removal script
+
+# Simple logging function
+log_message() {
+    echo "luci-app-openlistui: $1"
+    logger -t "luci-app-openlistui" "$1" 2>/dev/null || true
+}
+
+log_message "Pre-removal script starting..."
+
+# Backup UCI configuration before removal
+if uci -q get openlistui >/dev/null 2>&1; then
+    log_message "Backing up UCI configuration before removal"
+    uci export openlistui > /tmp/openlistui.upgrade.backup 2>/dev/null || true
+fi
+
+# Stop service if running
+if [ -x "/etc/init.d/openlistui" ]; then
+    log_message "Stopping openlistui service..."
+    /etc/init.d/openlistui stop 2>/dev/null || true
+    /etc/init.d/openlistui disable 2>/dev/null || true
+fi
+
+# Clear LuCI cache safely
+for cache_dir in "/tmp/luci-modulecache" "/tmp/luci-indexcache"; do
+    if [ -d "$cache_dir" ]; then
+        rm -rf "$cache_dir"/* 2>/dev/null || true
+        log_message "Cleared cache: $cache_dir"
+    fi
+done
+
+log_message "Pre-removal script completed"
+
+exit 0

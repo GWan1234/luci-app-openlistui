@@ -1,0 +1,691 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+msgid "OpenList UI"
+msgstr "OpenList UI"
+
+msgid "OpenList Settings"
+msgstr "OpenList 设置"
+
+msgid "Configure OpenList file management service"
+msgstr "配置 OpenList 文件管理服务"
+
+msgid "Overview"
+msgstr "概览"
+
+msgid "Settings"
+msgstr "设置"
+
+
+
+msgid "Logs"
+msgstr "日志"
+
+msgid "Enable Logging"
+msgstr "启用日志"
+
+msgid "Enable application logging to file"
+msgstr "启用应用程序文件日志记录"
+
+msgid "Log File Path"
+msgstr "日志文件路径"
+
+msgid "Path to the log file"
+msgstr "日志文件的路径"
+
+msgid "Max Log Size (MB)"
+msgstr "最大日志大小 (MB)"
+
+msgid "Maximum size of log file in megabytes"
+msgstr "日志文件的最大大小（以兆字节为单位）"
+
+msgid "Log Cache Hours"
+msgstr "日志缓存小时数"
+
+msgid "Number of hours to keep logs cached"
+msgstr "保持日志缓存的小时数"
+
+msgid "OpenList Core"
+msgstr "OpenList 核心"
+
+msgid "Update Management"
+msgstr "更新管理"
+
+msgid "Target Architecture"
+msgstr "目标架构"
+
+msgid "linux-386"
+msgstr "linux-386"
+
+msgid "linux-amd64(x86-64)"
+msgstr "linux-amd64(x86-64)"
+
+msgid "linux-amd64-v3(x86-64)"
+msgstr "linux-amd64-v3(x86-64)"
+
+msgid "linux-armv5"
+msgstr "linux-armv5"
+
+msgid "linux-armv6"
+msgstr "linux-armv6"
+
+msgid "linux-armv7"
+msgstr "linux-armv7"
+
+msgid "linux-arm64(armv8)"
+msgstr "linux-arm64(armv8)"
+
+msgid "linux-loong64"
+msgstr "linux-loong64"
+
+msgid "linux-riscv64"
+msgstr "linux-riscv64"
+
+msgid "linux-mips"
+msgstr "linux-mips"
+
+msgid "linux-mips64"
+msgstr "linux-mips64"
+
+msgid "linux-mips64le"
+msgstr "linux-mips64le"
+
+msgid "linux-mipsle"
+msgstr "linux-mipsle"
+
+msgid "Auto Detect"
+msgstr "自动检测"
+
+msgid "Release Branch"
+msgstr "发布分支"
+
+msgid "Stable (Master)"
+msgstr "稳定版 (Master)"
+
+msgid "Development (Beta)"
+msgstr "开发版 (Beta)"
+
+msgid "Core Type"
+msgstr "核心类型"
+
+msgid "Full Core"
+msgstr "完整版"
+
+msgid "Lite Core"
+msgstr "精简版"
+
+msgid "View core type information"
+msgstr "查看核心类型信息"
+
+msgid "Note: if the update fails, you can manually download and upload"
+msgstr "注意：如果更新失败，您可以手动下载并上传"
+
+msgid "Update Status"
+msgstr "更新状态"
+
+msgid "Check for Updates"
+msgstr "检查更新"
+
+msgid "Checking for updates..."
+msgstr "正在检查更新..."
+
+msgid "Supported Architectures"
+msgstr "支持的架构"
+
+msgid "Toggle Details"
+msgstr "切换详情"
+
+msgid "Each architecture supports both Full and Lite core types"
+msgstr "每个架构都支持完整版和精简版核心类型"
+
+
+
+msgid "Component Updates"
+msgstr "组件更新"
+
+msgid "OpenList Core Update"
+msgstr "OpenList 核心更新"
+
+msgid "Download path:"
+msgstr "下载路径："
+
+msgid "Current Version"
+msgstr "当前版本"
+
+msgid "Loading..."
+msgstr "加载中..."
+
+msgid "Latest Version"
+msgstr "最新版本"
+
+msgid "Package Size"
+msgstr "包大小"
+
+msgid "Package Date"
+msgstr "包日期"
+
+msgid "SHA256 Hash"
+msgstr "SHA256 哈希"
+
+msgid "Update Core"
+msgstr "更新核心"
+
+msgid "Download Latest Core"
+msgstr "下载最新核心"
+
+
+
+msgid "Check And Update"
+msgstr "检查并更新"
+
+msgid "Download"
+msgstr "下载"
+
+msgid "Hostname"
+msgstr "主机名"
+
+msgid "OpenWrt Version"
+msgstr "OpenWrt 版本"
+
+msgid "Kernel"
+msgstr "内核"
+
+msgid "Architecture"
+msgstr "架构"
+
+msgid "Uptime"
+msgstr "运行时间"
+
+
+
+msgid "Load Average"
+msgstr "系统负载"
+
+msgid "Unknown"
+msgstr "未知"
+
+msgid "Update History"
+msgstr "更新历史"
+
+msgid "Refresh"
+msgstr "刷新"
+
+msgid "Clear Log"
+msgstr "清空日志"
+
+msgid "No update history available"
+msgstr "没有可用的更新历史"
+
+msgid "Updating Component"
+msgstr "正在更新组件"
+
+msgid "Preparing update..."
+msgstr "准备更新中..."
+
+msgid "Cancel"
+msgstr "取消"
+
+msgid "Updates available for"
+msgstr "有可用更新："
+
+msgid "All components are up to date"
+msgstr "所有组件都是最新的"
+
+msgid "<New>"
+msgstr "<新版本>"
+
+msgid "Getting Latest Version..."
+msgstr "获取最新版本中..."
+
+msgid "Update Available"
+msgstr "有可用更新"
+
+msgid "Up to Date"
+msgstr "已是最新"
+
+msgid "Are you sure you want to download the latest"
+msgstr "您确定要下载最新的"
+
+msgid "Download started for"
+msgstr "开始下载"
+
+msgid "Download failed"
+msgstr "下载失败"
+
+msgid "Please select a specific architecture for download"
+msgstr "请选择具体的架构进行下载"
+
+msgid "Package not available for selected architecture"
+msgstr "所选架构没有可用的包"
+
+msgid "Another update is already in progress"
+msgstr "另一个更新正在进行中"
+
+msgid "Are you sure you want to update"
+msgstr "您确定要更新"
+
+msgid "Updating"
+msgstr "正在更新"
+
+msgid "Update cancelled"
+msgstr "更新已取消"
+
+msgid "Update log refreshed"
+msgstr "更新日志已刷新"
+
+msgid "Are you sure you want to clear the update log?"
+msgstr "您确定要清空更新日志吗？"
+
+msgid "Update log cleared"
+msgstr "更新日志已清空"
+
+msgid "Update log cleared successfully"
+msgstr "更新日志清空成功"
+
+msgid "Failed to check for updates"
+msgstr "检查更新失败"
+
+msgid "Update failed"
+msgstr "更新失败"
+
+msgid "Not Available"
+msgstr "不可用"
+
+msgid "Core Type Information"
+msgstr "核心类型信息"
+
+msgid "Complete OpenList binary with all features including web UI, API server, and all protocols support."
+msgstr "包含所有功能的完整 OpenList 二进制文件，包括 Web UI、API 服务器和所有协议支持。"
+
+msgid "Lightweight OpenList binary optimized for minimal resource usage. Some advanced features may be disabled."
+msgstr "针对最小资源使用进行优化的轻量级 OpenList 二进制文件。某些高级功能可能被禁用。"
+
+msgid "Recommendation"
+msgstr "建议"
+
+msgid "Use Full Core for feature-rich environments, Lite Core for resource-constrained devices."
+msgstr "在功能丰富的环境中使用完整版核心，在资源受限的设备上使用精简版核心。"
+
+msgid "Core Type Help"
+msgstr "核心类型帮助"
+
+msgid "Close"
+msgstr "关闭"
+
+msgid "Component updated successfully"
+msgstr "组件更新成功"
+
+msgid "Auto-detect"
+msgstr "自动检测"
+
+msgid "Stable"
+msgstr "稳定版"
+
+msgid "Development"
+msgstr "开发版"
+
+msgid "Port"
+msgstr "端口"
+
+msgid "Data Directory"
+msgstr "数据目录"
+
+msgid "Admin Password"
+msgstr "管理员密码"
+
+msgid "Leave empty to auto-generate"
+msgstr "留空则自动生成"
+
+msgid "Auto Start"
+msgstr "自动启动"
+
+msgid "Enable HTTPS"
+msgstr "启用 HTTPS"
+
+msgid "Certificate File"
+msgstr "证书文件"
+
+msgid "Private Key File"
+msgstr "私钥文件"
+
+
+
+msgid "Config File Path"
+msgstr "配置文件路径"
+
+msgid "Cache Directory"
+msgstr "缓存目录"
+
+msgid "Remote Storage"
+msgstr "远程存储"
+
+msgid "Type"
+msgstr "类型"
+
+msgid "Server URL"
+msgstr "服务器 URL"
+
+msgid "Username"
+msgstr "用户名"
+
+msgid "Password"
+msgstr "密码"
+
+msgid "Vendor"
+msgstr "厂商"
+
+
+
+msgid "Remote"
+msgstr "远程"
+
+
+
+
+
+msgid "Advanced Settings"
+msgstr "高级设置"
+
+msgid "Debug Mode"
+msgstr "调试模式"
+
+msgid "Log Level"
+msgstr "日志级别"
+
+msgid "Max Log Size (MB)"
+msgstr "最大日志大小 (MB)"
+
+msgid "Auto Configure Firewall"
+msgstr "自动配置防火墙"
+
+msgid "OpenList Overview"
+msgstr "OpenList 概览"
+
+msgid "Web Interface"
+msgstr "Web 界面"
+
+msgid "Open Web UI"
+msgstr "打开 Web UI"
+
+msgid "Configuration"
+msgstr "配置"
+
+
+
+msgid "View Logs"
+msgstr "查看日志"
+
+
+
+msgid "System Information"
+msgstr "系统信息"
+
+msgid "Device"
+msgstr "设备"
+
+msgid "System"
+msgstr "系统"
+
+msgid "Kernel"
+msgstr "内核"
+
+msgid "Uptime"
+msgstr "运行时间"
+
+msgid "Load Average"
+msgstr "负载平均值"
+
+msgid "Online"
+msgstr "在线"
+
+msgid "Offline"
+msgstr "离线"
+
+msgid "Unknown"
+msgstr "未知"
+
+msgid "Loading..."
+msgstr "加载中..."
+
+msgid "Start"
+msgstr "启动"
+
+msgid "Stop"
+msgstr "停止"
+
+msgid "Restart"
+msgstr "重启"
+
+msgid "Service is not running"
+msgstr "服务未运行"
+
+msgid "OpenList service is not running"
+msgstr "OpenList 服务未运行"
+
+
+
+
+
+msgid "Refresh"
+msgstr "刷新"
+
+msgid "Name"
+msgstr "名称"
+
+msgid "Enabled"
+msgstr "已启用"
+
+msgid "Active"
+msgstr "活动"
+
+msgid "Inactive"
+msgstr "非活动"
+
+msgid "Yes"
+msgstr "是"
+
+msgid "No"
+msgstr "否"
+
+msgid "Edit"
+msgstr "编辑"
+
+msgid "Delete"
+msgstr "删除"
+
+
+
+msgid "Please fill in all required fields"
+msgstr "请填写所有必填字段"
+
+
+
+msgid "Save"
+msgstr "保存"
+
+msgid "Cancel"
+msgstr "取消"
+
+msgid "Actions"
+msgstr "操作"
+
+msgid "Status"
+msgstr "状态"
+
+msgid "Note"
+msgstr "注意"
+
+
+
+msgid "Log Viewer"
+msgstr "日志查看器"
+
+msgid "Log Source"
+msgstr "日志来源"
+
+msgid "All Logs"
+msgstr "所有日志"
+
+msgid "Auto Refresh"
+msgstr "自动刷新"
+
+msgid "Stop Auto Refresh"
+msgstr "停止自动刷新"
+
+msgid "Clear Logs"
+msgstr "清除日志"
+
+msgid "Download"
+msgstr "下载"
+
+msgid "Are you sure you want to clear the logs?"
+msgstr "确定要清除日志吗？"
+
+msgid "No logs to download"
+msgstr "没有日志可下载"
+
+msgid "Loading logs..."
+msgstr "加载日志中..."
+
+msgid "Tips"
+msgstr "提示"
+
+msgid "Use Auto Refresh to automatically update logs every 3 seconds"
+msgstr "使用自动刷新每 3 秒自动更新日志"
+
+msgid "Logs are limited to the last 100 lines for performance"
+msgstr "为提高性能，日志限制为最后 100 行"
+
+msgid "Use Download to save complete logs to your computer"
+msgstr "使用下载将完整日志保存到计算机"
+
+
+
+msgid "Application Settings"
+msgstr "应用设置"
+
+msgid "Kernel Save Location"
+msgstr "内核保存位置"
+
+msgid "Directory where OpenList core binaries are downloaded and stored"
+msgstr "下载和存储 OpenList 核心二进制文件的目录"
+
+msgid "Available"
+msgstr "可用"
+
+msgid "Latest"
+msgstr "最新"
+
+msgid "Dynamic"
+msgstr "动态"
+
+msgid "Failed to get version information"
+msgstr "获取版本信息失败"
+
+msgid "Failed to parse version information"
+msgstr "解析版本信息失败"
+
+msgid "Failed to get download URL"
+msgstr "获取下载链接失败"
+
+msgid "Failed to connect to download service"
+msgstr "连接下载服务失败"
+
+msgid "No kernel found"
+msgstr "未找到内核"
+
+msgid "Not installed"
+msgstr "未安装"
+
+msgid "installed"
+msgstr "已安装"
+
+msgid "Network connection failed. Please check your internet connection."
+msgstr "网络连接失败。请检查您的互联网连接。"
+
+msgid "Server error: %"
+msgstr "服务器错误：%"
+
+msgid "Network error. Please check your internet connection and try again."
+msgstr "网络错误。请检查您的互联网连接然后重试。"
+
+msgid "Request timeout. Please try again later."
+msgstr "请求超时。请稍后重试。"
+
+msgid "API endpoint not found. Please check if the OpenList module is properly installed."
+msgstr "API端点未找到。请检查OpenList模块是否正确安装。"
+
+msgid "Version API endpoint not found. Please check if the OpenList module is properly installed."
+msgstr "版本API端点未找到。请检查OpenList模块是否正确安装。"
+
+msgid "API test failed"
+msgstr "API测试失败"
+
+msgid "API response parse error"
+msgstr "API响应解析错误"
+
+msgid "Not Installed"
+msgstr "未安装"
+
+msgid "Install OpenList"
+msgstr "安装 OpenList"
+
+msgid "OpenList not installed"
+msgstr "OpenList 未安装"
+
+msgid "Please go to Updates page to install OpenList first"
+msgstr "请先到更新页面安装 OpenList"
+
+msgid "Would you like to go to the Updates page to install OpenList?"
+msgstr "是否要前往更新页面安装 OpenList？"
+
+msgid "GitHub Token"
+msgstr "GitHub 令牌"
+
+msgid "Optional. Enter GitHub Personal Access Token to avoid API rate limits (60/hour → 5000/hour). Generate at: https://github.com/settings/tokens"
+msgstr "可选。输入 GitHub 个人访问令牌以避免 API 速率限制（60次/小时 → 5000次/小时）。生成地址：https://github.com/settings/tokens"
+
+msgid "Test GitHub Token"
+msgstr "测试 GitHub 令牌"
+
+msgid "Click to test GitHub token validity and check current rate limits"
+msgstr "点击测试 GitHub 令牌有效性并检查当前速率限制"
+
+msgid "Please enter a GitHub token first"
+msgstr "请先输入 GitHub 令牌"
+
+msgid "Testing GitHub Token"
+msgstr "正在测试 GitHub 令牌"
+
+msgid "Testing token validity and checking rate limits, please wait..."
+msgstr "正在测试令牌有效性并检查速率限制，请稍候..."
+
+msgid "GitHub token test failed"
+msgstr "GitHub 令牌测试失败"
+
+msgid "Failed to test GitHub token"
+msgstr "无法测试 GitHub 令牌"
+
+msgid "Error testing GitHub token: "
+msgstr "测试 GitHub 令牌时出错："
+
+msgid "Test Token"
+msgstr "测试令牌"
+
+msgid "Directory where OpenList stores temporary files and cache"
+msgstr "OpenList 存储临时文件和缓存的目录"
+
+msgid "Cache directory cannot be empty"
+msgstr "缓存目录不能为空"
+
+msgid "Enter new password to set"
+msgstr "输入要设置的新密码"
+
+msgid "Enter a new password to set for OpenList administrator. Password will not be saved in config file."
+msgstr "输入要为 OpenList 管理员设置的新密码。密码不会保存在配置文件中。"
+
+msgid "Allow External Access"
+msgstr "允许外部访问"
+
+msgid "Allow access from external networks (Controls OpenWrt firewall rules for HTTP, FTP, SFTP and S3 ports based on config.json)"
+msgstr "允许来自外部网络的访问（根据 config.json 控制 OpenWrt 防火墙规则，开放 HTTP、FTP、SFTP 和 S3 端口）"
