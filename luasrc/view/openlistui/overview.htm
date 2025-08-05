@@ -188,11 +188,11 @@ document.addEventListener('DOMContentLoaded', function() {
     updateCoreStatus(); // Load initial status
 
     
-    // Update every 5 seconds
+    // Update every 3 seconds for more responsive status detection
     setInterval(function() {
         updateCoreStatus();
         updateChart();
-    }, 5000);
+    }, 3000);
     
     // Update chart every 2 seconds when service is running
     setInterval(updateChart, 2000);
@@ -236,8 +236,10 @@ function toggleCore() {
             
             if (response && response.success) {
                 showNotification(isRunning ? '<%:Core stopped%>' : '<%:Core started%>', 'success');
-                // Refresh status
+                // Refresh status immediately and again after a short delay
                 updateCoreStatus();
+                setTimeout(updateCoreStatus, 1000);
+                setTimeout(updateCoreStatus, 3000);
             } else {
                 let errorMessage = response.message || 'Unknown error';
                 let debugInfo = response.debug || '';
@@ -287,8 +289,10 @@ function restartCore() {
             const response = typeof result === 'string' ? JSON.parse(result) : result;
             if (response && response.success) {
                 showNotification('<%:Core restarted successfully%>', 'success');
-                // Refresh status after a delay
-                setTimeout(updateCoreStatus, 2000);
+                // Refresh status multiple times to catch the restart process
+                setTimeout(updateCoreStatus, 1000);
+                setTimeout(updateCoreStatus, 3000);
+                setTimeout(updateCoreStatus, 5000);
             } else {
                 showNotification('<%:Restart failed%>: ' + (response.message || 'Unknown error'), 'error');
             }

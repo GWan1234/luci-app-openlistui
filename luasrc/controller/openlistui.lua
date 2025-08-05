@@ -883,11 +883,44 @@ function action_status()
         if pid_output and pid_output ~= "" then
             local check_pid = tonumber(pid_output)
             if check_pid then
-                -- Double-check that the process executable is our binary
-                local proc_exe = util.trim(sys.exec("readlink -f /proc/" .. check_pid .. "/exe 2>/dev/null"))
-                if proc_exe == binary_path then
-                    openlist_running = true
-                    pid = check_pid
+                -- First check: verify process exists and is running
+                local proc_status = util.trim(sys.exec("cat /proc/" .. check_pid .. "/status 2>/dev/null | grep '^State:' | awk '{print $2}'"))
+                if proc_status == "R" or proc_status == "S" or proc_status == "D" then
+                    -- Process is running, now verify it's our binary
+                    local proc_exe = util.trim(sys.exec("readlink -f /proc/" .. check_pid .. "/exe 2>/dev/null"))
+                    if proc_exe == binary_path then
+                        openlist_running = true
+                        pid = check_pid
+                    else
+                        -- Fallback: check command line if exe link fails (can happen during startup)
+                        local cmdline = util.trim(sys.exec("cat /proc/" .. check_pid .. "/cmdline 2>/dev/null | tr '\0' ' '"))
+                        if cmdline and cmdline:find(binary_path, 1, true) then
+                            openlist_running = true
+                            pid = check_pid
+                            log_openlistui_operation("STATUS_CHECK_FALLBACK", "Used cmdline fallback for PID " .. check_pid)
+                        end
+                    end
+                end
+            end
+        end
+        
+        -- Additional fallback: check for any openlist process if strict check failed
+        if not openlist_running then
+            local fallback_pid = util.trim(sys.exec("pgrep -f 'openlist' 2>/dev/null | head -1"))
+            if fallback_pid and fallback_pid ~= "" then
+                local check_pid = tonumber(fallback_pid)
+                if check_pid then
+                    -- Verify it's actually running and related to our installation
+                    local proc_status = util.trim(sys.exec("cat /proc/" .. check_pid .. "/status 2>/dev/null | grep '^State:' | awk '{print $2}'"))
+                    if proc_status == "R" or proc_status == "S" or proc_status == "D" then
+                        local cmdline = util.trim(sys.exec("cat /proc/" .. check_pid .. "/cmdline 2>/dev/null | tr '\0' ' '"))
+                        -- Check if it's running from our expected location or with our config
+                        if cmdline and (cmdline:find("/usr/bin/openlist", 1, true) or cmdline:find("/tmp/openlist", 1, true)) then
+                            openlist_running = true
+                            pid = check_pid
+                            log_openlistui_operation("STATUS_CHECK_FALLBACK", "Used generic openlist process detection for PID " .. check_pid)
+                        end
+                    end
                 end
             end
         end
