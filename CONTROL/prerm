@@ -23,6 +23,25 @@ if [ -x "/etc/init.d/openlistui" ]; then
     /etc/init.d/openlistui disable 2>/dev/null || true
 fi
 
+# Kill OpenList core processes
+log_message "Stopping OpenList core processes..."
+for pid in $(ps | grep -E '[o]penlist' | awk '{print $1}'); do
+    if [ -n "$pid" ]; then
+        log_message "Killing OpenList process: $pid"
+        kill -TERM "$pid" 2>/dev/null || true
+        sleep 1
+        # Force kill if still running
+        if kill -0 "$pid" 2>/dev/null; then
+            log_message "Force killing OpenList process: $pid"
+            kill -KILL "$pid" 2>/dev/null || true
+        fi
+    fi
+done
+
+# Additional cleanup for any remaining openlist processes
+pkill -f openlist 2>/dev/null || true
+log_message "OpenList core processes stopped"
+
 # Clear LuCI cache safely
 for cache_dir in "/tmp/luci-modulecache" "/tmp/luci-indexcache"; do
     if [ -d "$cache_dir" ]; then
