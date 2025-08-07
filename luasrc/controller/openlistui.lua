@@ -9,7 +9,8 @@ local sys = require "luci.sys"
 local http = require "luci.http"
 local util = require "luci.util"
 local fs = require "nixio.fs"
-local _ = require "luci.i18n".translate
+local i18n = require "luci.i18n"
+local _ = i18n.translate
 
 -- Forward declarations removed - functions defined before use
 
@@ -653,9 +654,6 @@ function index()
     -- if not nixio.fs.access("/etc/config/openlistui") then
     --     return
     -- end
-
-    -- 在函数内部定义翻译函数引用
-    local _ = require("luci.i18n").translate
 
     local page = luci.dispatcher.entry({"admin", "services", "openlistui"}, luci.dispatcher.firstchild(), _("OpenList UI"), 60)
     page.dependent = false
