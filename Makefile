@@ -44,6 +44,8 @@ PKG_BUILD_ARCH:=$(shell uname -m 2>/dev/null || echo "unknown")
 
 PKG_LICENSE:=MIT
 PKG_MAINTAINER:=Drfccv
+PKG_BUILD_DEPENDS:=luci-base/host
+HOST_BUILD_DEPENDS:=luci-base/host
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -243,14 +245,16 @@ define Package/luci-app-openlistui/install
 	# 编译并安装翻译文件
 	if [ -d "./po" ]; then \
 		for lang in ./po/*/; do \
-			if [ -d "$$lang" ]; then \
-				langcode=$$(basename "$$lang"); \
+			if [ -d "$$$$lang" ]; then \
+				langcode=$$$$(basename "$$$$lang"); \
 				$(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n; \
-				if [ -f "$$lang/openlistui.po" ]; then \
-					if command -v po2lmo >/dev/null 2>&1; then \
-						po2lmo "$$lang/openlistui.po" $(1)/usr/lib/lua/luci/i18n/openlistui.$$langcode.lmo; \
+				if [ -f "$$$$lang/openlistui.po" ]; then \
+					if [ -x "$(STAGING_DIR_HOSTPKG)/bin/po2lmo" ]; then \
+						$(STAGING_DIR_HOSTPKG)/bin/po2lmo "$$$$lang/openlistui.po" $(1)/usr/lib/lua/luci/i18n/openlistui.$$$$langcode.lmo; \
+					elif [ -x "$(STAGING_DIR_HOST)/bin/po2lmo" ]; then \
+						$(STAGING_DIR_HOST)/bin/po2lmo "$$$$lang/openlistui.po" $(1)/usr/lib/lua/luci/i18n/openlistui.$$$$langcode.lmo; \
 					else \
-						$(INSTALL_DATA) "$$lang/openlistui.po" $(1)/usr/lib/lua/luci/i18n/openlistui.$$langcode.po; \
+						echo "Warning: po2lmo not found, skipping translation compilation"; \
 					fi; \
 				fi; \
 			fi; \

@@ -592,6 +592,36 @@ msgstr "核心已启动"
 msgid "Operation failed"
 msgstr "操作失败"
 
+msgid "Configure OpenList services, storage, and application settings"
+msgstr "配置 OpenList 服务、存储和应用程序设置"
+
+msgid "Port number for OpenList web interface (1024-65535)"
+msgstr "OpenList Web 界面端口号 (1024-65535)"
+
+msgid "Directory where OpenList stores its data and configuration"
+msgstr "OpenList 存储数据和配置的目录"
+
+msgid "Enable SSL (HTTPS)"
+msgstr "启用 SSL (HTTPS)"
+
+msgid "Use HTTPS for secure connections"
+msgstr "使用 HTTPS 进行安全连接"
+
+msgid "Automatically start OpenList service when system boots"
+msgstr "系统启动时自动启动 OpenList 服务"
+
+msgid "Optional. Enter proxy address to accelerate GitHub access. Example: https://ghfast.top"
+msgstr "可选。输入代理地址以加速 GitHub 访问。示例：https://ghfast.top"
+
+msgid "Administrator Password"
+msgstr "管理员密码"
+
+msgid "GitHub Proxy"
+msgstr "GitHub 代理"
+
+msgid "Version"
+msgstr "版本"
+
 msgid "Restarting core..."
 msgstr "正在重启核心..."
 

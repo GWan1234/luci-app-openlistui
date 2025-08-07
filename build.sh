@@ -134,6 +134,7 @@ show_help() {
     echo "  --dev            - 开发模式，为包文件名添加时间戳"
     echo "  -v, --version VERSION - 指定版本号 (例如: 1.2.3)"
     echo "  -t, --token TOKEN     - GitHub API token (避免rate limit)"
+    echo "  -j, --jobs JOBS       - 指定编译线程数 (默认: 自动检测CPU核心数)"
     echo ""
     echo "其他选项:"
     echo "  version  - 显示版本信息 (包含GitHub releases检测)"
@@ -151,6 +152,7 @@ show_help() {
     echo "  $0                          # 编译默认架构 (x86_64)"
     echo "  $0 -v 1.2.3 x86_64         # 使用指定版本号编译"
     echo "  $0 -t ghp_xxx... all       # 使用GitHub token编译所有架构"
+    echo "  $0 -j 4 x86_64             # 使用4线程编译 x86_64"
     echo "  $0 aarch64      # 编译 ARM64"
     echo "  $0 all          # 编译所有支持的架构"
     echo "  $0 -f x86_64    # 快速编译 x86_64 (跳过feeds更新)"
@@ -165,6 +167,7 @@ build_all_packages() {
     local fast_mode="${1:-false}"
     local dev_mode="${2:-false}"
     local custom_version="${3:-}"
+    local jobs="${4:-1}"
     local all_archs=("x86_64" "aarch64" "mips" "mipsel" "arm" "armv7")
     local success_count=0
     local failed_archs=()
@@ -177,7 +180,7 @@ build_all_packages() {
         log_info "[${success_count}/${#all_archs[@]}] 开始编译架构: $arch"
         echo "========================================"
         
-        if build_package "$arch" "$fast_mode" "$dev_mode" "$custom_version"; then
+        if build_package "$arch" "$fast_mode" "$dev_mode" "$custom_version" "$jobs"; then
             ((success_count++))
             log_success "架构 $arch 编译成功"
         else
@@ -208,6 +211,7 @@ build_package() {
     local fast_mode="${2:-false}"
     local dev_mode="${3:-false}"
     local custom_version="${4:-}"
+    local jobs="${5:-1}"
     
     if [[ -z "${ARCH_CONFIG[$target_arch]}" ]]; then
         log_error "不支持的架构: $target_arch"
@@ -215,7 +219,7 @@ build_package() {
         return 1
     fi
     
-    log_info "编译 OpenList LuCI App [$target_arch] $([ "$fast_mode" = "true" ] && echo "(快速模式)" || echo "")"
+    log_info "编译 OpenList LuCI App [$target_arch] $([ "$fast_mode" = "true" ] && echo "(快速模式)" || echo "") [${jobs}线程]"
     
     # 显示版本信息
     if [ -f "Makefile" ]; then
@@ -258,8 +262,15 @@ build_package() {
     rm -rf package/luci-app-openlistui
     mkdir -p package/luci-app-openlistui
     
-    # 只复制必要的文件，包括 root 目录（包含 init.d 脚本）
-    cp -r ../../Makefile ../../luasrc ../../po ../../root package/luci-app-openlistui/
+    # 复制必要的文件，包括 root 目录（包含 init.d 脚本）
+    cp -r ../../Makefile ../../luasrc ../../root package/luci-app-openlistui/
+    
+    # 复制 po 目录（如果存在）
+    if [ -d "../../po" ]; then
+        cp -r ../../po package/luci-app-openlistui/
+    else
+        log_warning "po 目录不存在，跳过翻译文件复制"
+    fi
     
     # 如果存在 htdocs 目录，也复制
     if [ -d "../../htdocs" ]; then
@@ -270,15 +281,13 @@ build_package() {
     if [ "$fast_mode" = "true" ]; then
         log_info "快速模式: 跳过feeds更新"
     else
-        log_info "配置清华镜像源..."
+        log_info "配置GitHub镜像源..."
         # 备份原始feeds配置
         [ -f feeds.conf.default.bak ] || cp feeds.conf.default feeds.conf.default.bak
         
-        # 替换为清华镜像源
-        sed -i 's|https://git.openwrt.org/feed/packages.git|https://mirrors.tuna.tsinghua.edu.cn/git/openwrt/feeds/packages.git|g' feeds.conf.default
-        sed -i 's|https://git.openwrt.org/project/luci.git|https://mirrors.tuna.tsinghua.edu.cn/git/openwrt/luci.git|g' feeds.conf.default
-        sed -i 's|https://git.openwrt.org/feed/routing.git|https://mirrors.tuna.tsinghua.edu.cn/git/openwrt/feeds/routing.git|g' feeds.conf.default
-        sed -i 's|https://git.openwrt.org/feed/telephony.git|https://mirrors.tuna.tsinghua.edu.cn/git/openwrt/feeds/telephony.git|g' feeds.conf.default
+        # 替换为GitHub镜像源（清华镜像不提供git仓库，只提供包镜像）
+        sed -i 's|git.openwrt.org/feed|github.com/openwrt|g' feeds.conf.default
+        sed -i 's|git.openwrt.org/project|github.com/openwrt|g' feeds.conf.default
         
         log_info "更新 feeds (这可能需要几分钟，请耐心等待)..."
         log_info "提示: 使用 -f 或 --fast 选项可跳过此步骤"
@@ -316,7 +325,7 @@ build_package() {
         log_info "设置自定义版本号: $custom_version"
     fi
     
-    if eval "$make_env make package/luci-app-openlistui/compile V=s" 2>&1 | tee "$build_log"; then
+    if eval "$make_env make package/luci-app-openlistui/compile V=s -j$jobs" 2>&1 | tee "$build_log"; then
         # 查找并复制IPK文件
         mkdir -p ../../output
         local ipk_file=$(find bin -name "*luci-app-openlistui*.ipk" | head -1)
@@ -496,6 +505,7 @@ main() {
     local build_all=false
     local dev_mode=false
     local custom_version=""
+    local jobs="$(nproc 2>/dev/null || echo '1')"
     
     # 解析参数
     while [[ $# -gt 0 ]]; do
@@ -526,6 +536,15 @@ main() {
                     shift 2
                 fi
                 ;;
+            "-j"|"--jobs")
+                if [[ $# -lt 2 ]] || [[ $2 == -* ]]; then
+                    log_error "--jobs 参数需要提供线程数"
+                    exit 1
+                else
+                    jobs="$2"
+                    shift 2
+                fi
+                ;;
             "help"|"-h"|"--help")
                 show_help
                 exit 0
@@ -551,9 +570,9 @@ main() {
     
     # 构建包
     if [ "$build_all" = "true" ]; then
-        build_all_packages "$fast_mode" "$dev_mode" "$custom_version"
+        build_all_packages "$fast_mode" "$dev_mode" "$custom_version" "$jobs"
     else
-        build_package "$arch" "$fast_mode" "$dev_mode" "$custom_version"
+        build_package "$arch" "$fast_mode" "$dev_mode" "$custom_version" "$jobs"
     fi
 }
 

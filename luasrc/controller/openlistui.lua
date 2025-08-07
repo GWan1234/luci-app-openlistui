@@ -655,6 +655,9 @@ function index()
     --     return
     -- end
 
+    -- 翻译函数已在模块顶部定义
+    -- local _ = i18n.translate
+    
     local page = luci.dispatcher.entry({"admin", "services", "openlistui"}, luci.dispatcher.firstchild(), _("OpenList UI"), 60)
     page.dependent = false
     page.acl_depends = {"luci-app-openlistui"}

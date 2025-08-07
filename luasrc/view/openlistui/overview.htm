@@ -101,8 +101,8 @@ Licensed under the MIT License
                     <div class="doc-section">
                         <h3><%:OpenList%></h3>
                         <div class="doc-links">
-                            <a href="https://openlist.io/docs" target="_blank" class="doc-link"><%:Documentation%></a>
-                            <a href="https://github.com/openlist/openlist" target="_blank" class="doc-link"><%:GitHub%></a>
+                            <a href="https://doc.oplist.org/" target="_blank" class="doc-link"><%:Documentation%></a>
+                            <a href="https://github.com/OpenListTeam/OpenList" target="_blank" class="doc-link"><%:GitHub%></a>
                         </div>
                     </div>
                     
@@ -400,46 +400,17 @@ function loadSettings() {
 
 // Documentation functions
 function showApiDocs() {
-    showModal('API Documentation', `
-        <div class="modal-content">
-            <h3>OpenList Core API</h3>
-            <div class="api-endpoints">
-                <div class="endpoint">
-                    <code>GET /api/status</code>
-                    <span>Get service status</span>
-                </div>
-                <div class="endpoint">
-                    <code>POST /api/start</code>
-                    <span>Start service</span>
-                </div>
-                <div class="endpoint">
-                    <code>POST /api/stop</code>
-                    <span>Stop service</span>
-                </div>
-            </div>
-        </div>
-    `);
+    window.open('https://openlist.apifox.cn/', '_blank');
 }
 
 
 
 function reportIssue() {
-    window.open('https://github.com/openlist/openlist/issues', '_blank');
+    window.open('https://github.com/OpenListTeam/OpenList/issues', '_blank');
 }
 
 function showFAQ() {
-    showModal('FAQ', `
-        <div class="modal-content">
-            <h3>Frequently Asked Questions</h3>
-            <div class="faq">
-
-                <div class="faq-item">
-                    <h4>Service won't start?</h4>
-                    <p>Check system logs and ensure no port conflicts exist.</p>
-                </div>
-            </div>
-        </div>
-    `);
+    window.open('https://doc.oplist.org/faq/why', '_blank');
 }
 
 // Modal system
