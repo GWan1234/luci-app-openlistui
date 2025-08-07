@@ -757,6 +757,13 @@ function index()
     luci.dispatcher.entry({"admin", "services", "openlistui", "install_openlist"}, 
           luci.dispatcher.call("action_install_openlist"), nil).leaf = true
           
+    -- LuCI App update endpoints
+    luci.dispatcher.entry({"admin", "services", "openlistui", "check_luci_updates"}, 
+          luci.dispatcher.call("action_check_luci_updates"), nil).leaf = true
+          
+    luci.dispatcher.entry({"admin", "services", "openlistui", "download_luci_update"}, 
+          luci.dispatcher.call("action_download_luci_update"), nil).leaf = true
+          
     -- File management endpoints
     -- 以下功能暂未实现，已注释
     -- entry({"admin", "services", "openlistui", "file_list"}, 
@@ -2049,7 +2056,17 @@ function action_get_download_url()
                 http.write_json(result)
                 return
             end
-
+        elseif component == "luci" then
+            local latest_version = get_latest_luci_version()
+            if latest_version ~= "unknown" then
+                version = latest_version
+                result.version = version
+            else
+                result.message = "Failed to get latest LuCI version"
+                http.prepare_content("application/json")
+                http.write_json(result)
+                return
+            end
         end
     end
     
@@ -2064,7 +2081,15 @@ function action_get_download_url()
         else
             result.message = "Failed to generate OpenList download URL"
         end
-
+    elseif component == "luci" then
+        local download_url = get_luci_download_url(version)
+        if download_url then
+            result.success = true
+            result.download_url = download_url
+            result.message = "LuCI download URL generated successfully"
+        else
+            result.message = "Failed to generate LuCI download URL"
+        end
     else
         result.message = "Unknown component: " .. component
     end
@@ -2113,6 +2138,43 @@ function get_openlist_download_url(version, use_lite, arch)
     
     log_openlistui_operation("DOWNLOAD_URL", "Generated OpenList download URL: " .. download_url)
     log_openlistui_operation("DOWNLOAD_URL", "Parameters - version: " .. version .. ", original_arch: " .. arch .. ", mapped_arch: " .. github_arch .. ", lite: " .. tostring(use_lite))
+    
+    return download_url
+end
+
+-- Get LuCI download URL for specific version
+function get_luci_download_url(version)
+    if not version or version == "unknown" then
+        log_openlistui_operation("LUCI_DOWNLOAD_URL", "Invalid version: " .. (version or "nil"))
+        return nil
+    end
+    
+    local arch = get_system_arch()
+    if not arch then
+        log_openlistui_operation("LUCI_DOWNLOAD_URL", "Unable to detect system architecture")
+        return nil
+    end
+    
+    -- Use the same architecture mapping as OpenList core
+    local mapped_arch = map_architecture(arch)
+    if not mapped_arch then
+        log_openlistui_operation("LUCI_DOWNLOAD_URL", "Unsupported architecture: " .. arch)
+        return nil
+    end
+    
+    -- Ensure version has 'v' prefix for GitHub URLs
+    local version_tag = version
+    if not version_tag:match("^v") then
+        version_tag = "v" .. version_tag
+    end
+    
+    -- Build download URL for IPK file
+    local ipk_filename = string.format("luci-app-openlistui_%s_%s.ipk", mapped_arch, version)
+    local download_url = string.format("https://github.com/drfccv/luci-app-openlistui/releases/download/%s/%s", 
+        version_tag, ipk_filename)
+    
+    log_openlistui_operation("LUCI_DOWNLOAD_URL", "Generated LuCI download URL: " .. download_url)
+    log_openlistui_operation("LUCI_DOWNLOAD_URL", "Parameters - version: " .. version .. ", arch: " .. arch .. ", mapped_arch: " .. mapped_arch)
     
     return download_url
 end
@@ -2765,10 +2827,20 @@ function action_update()
     
     result.openlist_latest = openlist_latest
 
+    -- Get LuCI app version information
+    result.luci_current = get_current_luci_version()
+    result.luci_latest = get_latest_luci_version()
+    
+    -- Check if LuCI app update is available
+    result.luci_update_available = false
+    if result.luci_current ~= "unknown" and result.luci_latest ~= "unknown" and 
+       result.luci_current ~= result.luci_latest then
+        result.luci_update_available = true
+    end
     
     -- Package information
     result.openlist_package_date = os.date("%Y-%m-%d")
-
+    result.kernel_save_path = get_kernel_save_path()
     
     result.success = true
     
@@ -3125,6 +3197,203 @@ function install_openlist_if_needed()
         log_openlistui_operation("INSTALL_OPENLIST", "OpenList installation failed: " .. (message or "unknown error"))
         return false, message or "Installation failed"
     end
+end
+
+-- Get current LuCI app version
+function get_current_luci_version()
+    local version_file = "/usr/lib/lua/luci/version-openlistui"
+    if fs.access(version_file) then
+        local content = fs.readfile(version_file)
+        if content then
+            -- Try to match PKG_VERSION first (from Makefile format)
+            local version = content:match("PKG_VERSION=([^\n]+)")
+            if version then
+                return version:gsub('"', '')
+            end
+            -- Fallback to VERSION format
+            version = content:match("VERSION=([^\n]+)")
+            if version then
+                return version:gsub('"', '')
+            end
+        end
+    end
+    
+    -- Fallback: try to get from opkg
+    local pkg_info = sys.exec("opkg list-installed | grep luci-app-openlistui | awk '{print $3}'")
+    if pkg_info and pkg_info ~= "" then
+        local clean_version = util.trim(pkg_info)
+        if clean_version ~= "" then
+            return clean_version
+        end
+    end
+    
+    -- Last fallback: try to get from control file
+    local control_info = sys.exec("opkg info luci-app-openlistui 2>/dev/null | grep '^Version:' | cut -d' ' -f2")
+    if control_info and control_info ~= "" then
+        local clean_version = util.trim(control_info)
+        if clean_version ~= "" then
+            return clean_version
+        end
+    end
+    
+    return "unknown"
+end
+
+-- Get latest LuCI app version from GitHub
+function get_latest_luci_version()
+    log_openlistui_operation("LUCI_VERSION_CHECK", "Getting latest LuCI app version from GitHub")
+    
+    -- First try to get from cache
+    local cache_key = "luci_latest_version"
+    local cached_result = get_cached_response(cache_key)
+    if cached_result then
+        log_openlistui_operation("LUCI_VERSION_CACHE", "Using cached LuCI version: " .. cached_result)
+        return cached_result
+    end
+    
+    -- Try to get latest version from GitHub API
+    local url = "https://api.github.com/repos/drfccv/luci-app-openlistui/releases/latest"
+    local headers = '-H "Accept: application/vnd.github.v3+json" -H "User-Agent: OpenListUI/1.0"'
+    local response = execute_curl_with_cache(url, cache_key, headers)
+    
+    if response and response ~= "" and not response:match("curl:") and response:match("tag_name") then
+        local tag_name = response:match('"tag_name"%s*:%s*"([^"]+)"')
+        if tag_name then
+            -- Remove 'v' prefix if present to normalize version
+            local clean_version = tag_name:gsub("^v", "")
+            log_openlistui_operation("LUCI_VERSION_SUCCESS", "Found latest LuCI app version: " .. tag_name .. " (cleaned: " .. clean_version .. ")")
+            -- Cache the successful result
+            set_cached_response(cache_key, clean_version)
+            return clean_version
+        end
+    end
+    
+    log_openlistui_operation("LUCI_VERSION_FAILED", "Failed to get latest LuCI app version")
+    return "unknown"
+end
+
+-- Check for LuCI app updates
+function action_check_luci_updates()
+    local result = {}
+    
+    log_openlistui_operation("LUCI_UPDATE_CHECK", "Checking for LuCI app updates")
+    
+    local current_version = get_current_luci_version()
+    local latest_version = get_latest_luci_version()
+    
+    local update_available = false
+    if current_version ~= "unknown" and latest_version ~= "unknown" and 
+       current_version ~= latest_version then
+        update_available = true
+    end
+    
+    result.success = true
+    result.current_version = current_version
+    result.latest_version = latest_version
+    result.update_available = update_available
+    result.download_url = "https://github.com/drfccv/luci-app-openlistui/releases"
+    
+    log_openlistui_operation("LUCI_UPDATE_CHECK_RESULT", 
+        string.format("Current: %s, Latest: %s, Update available: %s", 
+            current_version, latest_version, tostring(update_available)))
+    
+    http.prepare_content("application/json")
+    http.write_json(result)
+end
+
+-- Download and install LuCI app update
+function action_download_luci_update()
+    local result = {}
+    
+    log_openlistui_operation("LUCI_UPDATE_DOWNLOAD", "Starting LuCI app update download")
+    
+    local latest_version = get_latest_luci_version()
+    if latest_version == "unknown" then
+        result.success = false
+        result.message = "Unable to get latest version information"
+        http.prepare_content("application/json")
+        http.write_json(result)
+        return
+    end
+    
+    local arch = get_system_arch()
+    if not arch then
+        result.success = false
+        result.message = "Unable to detect system architecture"
+        http.prepare_content("application/json")
+        http.write_json(result)
+        return
+    end
+    
+    -- Use the same architecture mapping as OpenList core
+    local mapped_arch = map_architecture(arch)
+    if not mapped_arch then
+        result.success = false
+        result.message = "Unsupported architecture: " .. arch
+        http.prepare_content("application/json")
+        http.write_json(result)
+        return
+    end
+    
+    -- Build download URL for IPK file
+    local version_tag = "v" .. latest_version
+    local ipk_filename = string.format("luci-app-openlistui_%s_%s.ipk", mapped_arch, latest_version)
+    local download_url = string.format("https://github.com/drfccv/luci-app-openlistui/releases/download/%s/%s", 
+        version_tag, ipk_filename)
+    
+    local temp_dir = "/tmp/luci-app-update"
+    local temp_file = temp_dir .. "/" .. ipk_filename
+    
+    -- Create temp directory
+    sys.exec("mkdir -p " .. temp_dir)
+    
+    -- Download IPK file using the same method as OpenList core
+    log_openlistui_operation("LUCI_UPDATE_DOWNLOAD", "Downloading from: " .. download_url)
+    local download_success = download_file_with_retry(download_url, temp_file)
+    
+    if not download_success then
+        result.success = false
+        result.message = "Failed to download update package"
+        log_openlistui_operation("LUCI_UPDATE_FAILED", "Download failed")
+        http.prepare_content("application/json")
+        http.write_json(result)
+        return
+    end
+    
+    -- Verify file was downloaded
+    if not fs.access(temp_file) then
+        result.success = false
+        result.message = "Downloaded file not found"
+        http.prepare_content("application/json")
+        http.write_json(result)
+        return
+    end
+    
+    -- Install the package
+    log_openlistui_operation("LUCI_UPDATE_INSTALL", "Installing package: " .. temp_file)
+    local install_cmd = string.format("opkg install --force-reinstall '%s'", temp_file)
+    local install_result = sys.call(install_cmd)
+    
+    if install_result == 0 then
+        result.success = true
+        result.message = "LuCI app updated successfully to version " .. latest_version
+        result.new_version = latest_version
+        
+        -- Clean up
+        sys.exec("rm -f " .. temp_file)
+        
+        -- Restart uhttpd to reload the interface
+        sys.exec("/etc/init.d/uhttpd restart")
+        
+        log_openlistui_operation("LUCI_UPDATE_SUCCESS", "Update completed successfully")
+    else
+        result.success = false
+        result.message = "Failed to install update package"
+        log_openlistui_operation("LUCI_UPDATE_FAILED", "Installation failed with code: " .. install_result)
+    end
+    
+    http.prepare_content("application/json")
+    http.write_json(result)
 end
 
 -- 传统LuCI模块使用module()函数自动导出所有全局函数，无需手动导出

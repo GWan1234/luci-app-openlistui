@@ -123,8 +123,8 @@ msgstr "注意：如果更新失败，您可以手动下载并上传"
 msgid "Update Status"
 msgstr "更新状态"
 
-msgid "Check for Updates"
-msgstr "检查更新"
+msgid "Check And Updates"
+msgstr "检查并更新"
 
 msgid "Checking for updates..."
 msgstr "正在检查更新..."
@@ -254,6 +254,57 @@ msgstr "下载失败"
 
 msgid "Please select a specific architecture for download"
 msgstr "请选择具体的架构进行下载"
+
+msgid "LuCI App Update Management"
+msgstr "LuCI 应用更新管理"
+
+msgid "Check and install updates for the LuCI OpenList interface"
+msgstr "检查并安装 LuCI OpenList 界面的更新"
+
+msgid "GitHub Release"
+msgstr "GitHub 发布页"
+
+msgid "View Release"
+msgstr "查看发布页"
+
+msgid "Install Update"
+msgstr "安装更新"
+
+msgid "Checking..."
+msgstr "检查中..."
+
+msgid "Installing..."
+msgstr "安装中..."
+
+msgid "Are you sure you want to install the LuCI app update? The interface will restart after installation."
+msgstr "您确定要安装 LuCI 应用更新吗？安装后界面将重启。"
+
+msgid "Update installed successfully!"
+msgstr "更新安装成功！"
+
+msgid "The interface will reload automatically."
+msgstr "界面将自动重新加载。"
+
+msgid "Update failed:"
+msgstr "更新失败："
+
+msgid "Failed to check for updates"
+msgstr "检查更新失败"
+
+msgid "Unknown error"
+msgstr "未知错误"
+
+msgid "Update Available"
+msgstr "有可用更新"
+
+msgid "Up to Date"
+msgstr "已是最新版本"
+
+msgid "Check Updates"
+msgstr "检查更新"
+
+msgid "Download"
+msgstr "下载"
 
 msgid "Package not available for selected architecture"
 msgstr "所选架构没有可用的包"
