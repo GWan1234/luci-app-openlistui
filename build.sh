@@ -14,6 +14,7 @@ NC='\033[0m'
 # 项目信息
 PKG_NAME="luci-app-openlistui"
 DEFAULT_ARCH="x86_64"
+GITHUB_REPO="drfccv/luci-app-openlistui"
 
 # 支持的架构（使用清华大学镜像源）
 declare -A ARCH_CONFIG=(
@@ -29,6 +30,67 @@ log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+
+# 获取GitHub releases的最新版本号
+get_latest_github_version() {
+    local repo="$1"
+    local latest_version=""
+    
+    # 尝试使用curl获取最新release信息
+    if command -v curl &> /dev/null; then
+        latest_version=$(curl -s "https://api.github.com/repos/${repo}/releases/latest" 2>/dev/null | \
+            grep '"tag_name":' | \
+            sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/' | \
+            sed 's/^v//')
+    elif command -v wget &> /dev/null; then
+        latest_version=$(wget -qO- "https://api.github.com/repos/${repo}/releases/latest" 2>/dev/null | \
+            grep '"tag_name":' | \
+            sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/' | \
+            sed 's/^v//')
+    fi
+    
+    if [ -n "$latest_version" ] && [ "$latest_version" != "null" ]; then
+        echo "$latest_version"
+    else
+        echo ""
+    fi
+}
+
+# 生成下一个版本号
+generate_next_version() {
+    local base_version="$1"
+    local latest_github_version="$2"
+    local verbose="${3:-false}"
+    
+    if [ -z "$latest_github_version" ]; then
+        # 如果无法获取GitHub版本，使用传统的git commit计数方式
+        local patch_version="1"
+        if [ -d ".git" ]; then
+            patch_version=$(git rev-list --count HEAD 2>/dev/null || echo "1")
+        fi
+        echo "${base_version}.${patch_version}"
+        return
+    fi
+    
+    # 解析版本号
+    local github_base=$(echo "$latest_github_version" | cut -d'.' -f1-2)
+    local github_patch=$(echo "$latest_github_version" | cut -d'.' -f3)
+    
+    # 如果base version相同，生成下一个小版本号
+    if [ "$github_base" = "$base_version" ]; then
+        local next_patch=$((github_patch + 1))
+        echo "${base_version}.${next_patch}"
+        [ "$verbose" = "true" ] && log_info "检测到相同base version，生成下一个小版本: ${base_version}.${next_patch}"
+    else
+        # 如果base version不同，使用git commit计数
+        local patch_version="1"
+        if [ -d ".git" ]; then
+            patch_version=$(git rev-list --count HEAD 2>/dev/null || echo "1")
+        fi
+        echo "${base_version}.${patch_version}"
+        [ "$verbose" = "true" ] && log_info "base version不同，使用git计数: ${base_version}.${patch_version}"
+    fi
+}
 
 show_help() {
     echo "OpenList LuCI App 简化编译脚本"
@@ -49,9 +111,14 @@ show_help() {
     echo "  --dev        - 开发模式，为包文件名添加时间戳"
     echo ""
     echo "其他选项:"
-    echo "  version  - 显示版本信息"
+    echo "  version  - 显示版本信息 (包含GitHub releases检测)"
     echo "  clean    - 清理构建文件"
     echo "  help     - 显示此帮助信息"
+    echo ""
+    echo "版本管理:"
+    echo "  脚本会自动检测 GitHub releases 的最新版本号"
+    echo "  如果 base version 相同，会自动生成下一个小版本号"
+    echo "  GitHub仓库: https://github.com/$GITHUB_REPO/releases"
     echo ""
     echo "示例:"
     echo "  $0              # 编译默认架构 (x86_64)"
@@ -216,16 +283,16 @@ build_package() {
         mkdir -p ../../output
         local ipk_file=$(find bin -name "*luci-app-openlistui*.ipk" | head -1)
         if [ -n "$ipk_file" ]; then
-            # 从Makefile提取版本号
+            # 从Makefile提取版本号并检测GitHub最新版本
             local version="unknown"
             if [ -f "../../Makefile" ]; then
                 local base_version=$(grep "^PKG_VERSION_BASE:=" ../../Makefile | head -1 | cut -d'=' -f2 | tr -d ' \n\r')
-                local patch_version="1"
-                if [ -d "../../.git" ]; then
-                    patch_version=$(git -C ../.. rev-list --count HEAD 2>/dev/null || echo "1")
-                fi
                 if [ -n "$base_version" ]; then
-                    version="${base_version}.${patch_version}"
+                    # 获取GitHub最新版本
+                    log_info "检测GitHub releases最新版本..."
+                    local latest_github_version=$(get_latest_github_version "$GITHUB_REPO")
+                    # 生成新版本号
+                    version=$(generate_next_version "$base_version" "$latest_github_version" "true")
                 fi
             fi
             
@@ -296,13 +363,40 @@ show_version() {
         # 从Makefile提取版本信息
         if command -v make &> /dev/null; then
             make version 2>/dev/null
+            
+            # 即使make成功，也显示GitHub版本信息
+            echo ""
+            echo "GitHub Release Information:"
+            local base_version=$(grep "^PKG_VERSION_BASE:=" Makefile | head -1 | cut -d'=' -f2 | tr -d ' \n\r')
+            echo "正在检测GitHub releases..."
+            local latest_github_version=$(get_latest_github_version "$GITHUB_REPO")
+            if [ -n "$latest_github_version" ]; then
+                echo "Latest GitHub Release: $latest_github_version"
+                local next_version=$(generate_next_version "$base_version" "$latest_github_version")
+                echo "Next Build Version: $next_version"
+                
+                # 显示版本策略说明
+                local github_base=$(echo "$latest_github_version" | cut -d'.' -f1-2)
+                if [ "$github_base" = "$base_version" ]; then
+                    echo "Strategy: Same base version detected, incrementing patch number"
+                else
+                    echo "Strategy: Different base version, using git commit count"
+                fi
+            else
+                log_warning "无法获取GitHub releases信息"
+                local patch_version="1"
+                if [ -d ".git" ]; then
+                    patch_version=$(git rev-list --count HEAD 2>/dev/null || echo "1")
+                fi
+                echo "Next Build Version: ${base_version}.${patch_version}"
+            fi
         else
             log_warning "make 命令不可用，从Makefile手动提取版本信息"
             
             # 手动解析Makefile中的版本信息
             echo "正在解析Makefile..."
             
-            local base_version=$(grep "PKG_VERSION_BASE" Makefile | cut -d'=' -f2 | tr -d ' ')
+            local base_version=$(grep "^PKG_VERSION_BASE:=" Makefile | head -1 | cut -d'=' -f2 | tr -d ' \n\r')
             local build_date=$(date '+%Y-%m-%d %H:%M:%S')
             local build_host="$(whoami 2>/dev/null || echo 'unknown')@$(hostname 2>/dev/null || echo 'unknown')"
             
@@ -318,12 +412,34 @@ show_version() {
                 echo "Git Hash: $git_hash"
                 echo "Git Branch: $git_branch"
                 echo "Patch Version: $patch_version"
-                echo "Full Version: ${base_version}.${patch_version}"
+                echo "Traditional Version: ${base_version}.${patch_version}"
             else
                 echo "Git Hash: unknown (not a git repository)"
                 echo "Git Branch: unknown"
                 echo "Patch Version: 1"
-                echo "Full Version: ${base_version}.1"
+                echo "Traditional Version: ${base_version}.1"
+            fi
+            
+            # 显示GitHub版本信息
+            echo ""
+            echo "GitHub Release Information:"
+            echo "正在检测GitHub releases..."
+             local latest_github_version=$(get_latest_github_version "$GITHUB_REPO")
+             if [ -n "$latest_github_version" ]; then
+                 echo "Latest GitHub Release: $latest_github_version"
+                 local next_version=$(generate_next_version "$base_version" "$latest_github_version")
+                 echo "Next Build Version: $next_version"
+                 
+                 # 显示版本策略说明
+                 local github_base=$(echo "$latest_github_version" | cut -d'.' -f1-2)
+                 if [ "$github_base" = "$base_version" ]; then
+                     echo "Strategy: Same base version detected, incrementing patch number"
+                 else
+                     echo "Strategy: Different base version, using git commit count"
+                 fi
+             else
+                log_warning "无法获取GitHub releases信息"
+                echo "Next Build Version: ${base_version}.${patch_version}"
             fi
         fi
     else
