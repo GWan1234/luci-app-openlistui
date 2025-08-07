@@ -240,14 +240,18 @@ define Package/luci-app-openlistui/install
 	# 安装 ACL 配置文件
 	$(INSTALL_DATA) ./root/usr/share/rpcd/acl.d/luci-app-openlistui.json $(1)/usr/share/rpcd/acl.d/luci-app-openlistui.json
 	
-	# 安装翻译文件（原始 .po 格式）
+	# 编译并安装翻译文件
 	if [ -d "./po" ]; then \
 		for lang in ./po/*/; do \
 			if [ -d "$$lang" ]; then \
 				langcode=$$(basename "$$lang"); \
 				$(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n; \
 				if [ -f "$$lang/openlistui.po" ]; then \
-					$(INSTALL_DATA) "$$lang/openlistui.po" $(1)/usr/lib/lua/luci/i18n/openlistui.$$langcode.po 2>/dev/null || true; \
+					if command -v po2lmo >/dev/null 2>&1; then \
+						po2lmo "$$lang/openlistui.po" $(1)/usr/lib/lua/luci/i18n/openlistui.$$langcode.lmo; \
+					else \
+						$(INSTALL_DATA) "$$lang/openlistui.po" $(1)/usr/lib/lua/luci/i18n/openlistui.$$langcode.po; \
+					fi; \
 				fi; \
 			fi; \
 		done; \

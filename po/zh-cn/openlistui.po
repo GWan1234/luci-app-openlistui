@@ -1,5 +1,11 @@
 msgid ""
-msgstr "Content-Type: text/plain; charset=UTF-8"
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Project-Id-Version: luci-app-openlistui\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 
 msgid "OpenList UI"
 msgstr "OpenList UI"
@@ -15,6 +21,9 @@ msgstr "概览"
 
 msgid "Settings"
 msgstr "设置"
+
+msgid "Updates"
+msgstr "更新"
 
 
 

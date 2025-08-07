@@ -654,22 +654,25 @@ function index()
     --     return
     -- end
 
-    local page = luci.dispatcher.entry({"admin", "services", "openlistui"}, luci.dispatcher.firstchild(), "OpenList UI", 60)
+    -- 设置翻译域
+    luci.i18n.loadc("openlistui")
+
+    local page = luci.dispatcher.entry({"admin", "services", "openlistui"}, luci.dispatcher.firstchild(), _("OpenList UI"), 60)
     page.dependent = false
     page.acl_depends = {"luci-app-openlistui"}
     
     -- Main pages
     luci.dispatcher.entry({"admin", "services", "openlistui", "overview"}, 
-          luci.dispatcher.template("openlistui/overview"), "Overview", 1)
+          luci.dispatcher.template("openlistui/overview"), _("Overview"), 1)
 
     luci.dispatcher.entry({"admin", "services", "openlistui", "updates"}, 
-          luci.dispatcher.template("openlistui/updates"), "Updates", 2)
+          luci.dispatcher.template("openlistui/updates"), _("Updates"), 2)
 
     luci.dispatcher.entry({"admin", "services", "openlistui", "settings"}, 
-          luci.dispatcher.cbi("openlistui/settings"), "Settings", 3)
+          luci.dispatcher.cbi("openlistui/settings"), _("Settings"), 3)
 
     luci.dispatcher.entry({"admin", "services", "openlistui", "logs"}, 
-          luci.dispatcher.template("openlistui/logs"), "Logs", 4)
+          luci.dispatcher.template("openlistui/logs"), _("Logs"), 4)
 
     -- API endpoints for service management
     luci.dispatcher.entry({"admin", "services", "openlistui", "status"}, 
