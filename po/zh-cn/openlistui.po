@@ -294,6 +294,69 @@ msgstr "检查更新失败"
 msgid "Unknown error"
 msgstr "未知错误"
 
+msgid "Log Source"
+msgstr "日志源"
+
+msgid "All Logs"
+msgstr "全部日志"
+
+msgid "Display Lines"
+msgstr "显示行数"
+
+msgid "Filter"
+msgstr "过滤"
+
+msgid "All"
+msgstr "全部"
+
+msgid "Error"
+msgstr "错误"
+
+msgid "Warning"
+msgstr "警告"
+
+msgid "Info"
+msgstr "信息"
+
+msgid "Auto Refresh"
+msgstr "自动刷新"
+
+msgid "Pause"
+msgstr "暂停"
+
+msgid "Manual Refresh"
+msgstr "手动刷新"
+
+msgid "Download Logs"
+msgstr "下载日志"
+
+msgid "Clear Logs"
+msgstr "清除日志"
+
+msgid "Log Configuration"
+msgstr "日志配置"
+
+msgid "Path"
+msgstr "路径"
+
+msgid "Size"
+msgstr "大小"
+
+msgid "Backup"
+msgstr "备份"
+
+msgid "Retention Days"
+msgstr "保留天数"
+
+msgid "Compress"
+msgstr "压缩"
+
+msgid "Enabled"
+msgstr "启用"
+
+msgid "Log Configuration Info"
+msgstr "日志配置信息"
+
 msgid "Update Available"
 msgstr "有可用更新"
 
@@ -448,6 +511,96 @@ msgstr "最大日志大小 (MB)"
 
 msgid "Auto Configure Firewall"
 msgstr "自动配置防火墙"
+
+msgid "Manage your OpenList services and monitor performance"
+msgstr "管理您的 OpenList 服务并监控性能"
+
+msgid "Core Management"
+msgstr "核心管理"
+
+msgid "Stopped"
+msgstr "已停止"
+
+msgid "Start Core"
+msgstr "启动核心"
+
+msgid "Stop Core"
+msgstr "停止核心"
+
+msgid "Quick Settings"
+msgstr "快速设置"
+
+msgid "Auto Start on Boot"
+msgstr "开机自启"
+
+msgid "Core Monitor"
+msgstr "核心监控"
+
+msgid "CPU Usage"
+msgstr "CPU 使用率"
+
+msgid "Memory"
+msgstr "内存"
+
+msgid "No data - Service not running"
+msgstr "无数据 - 服务未运行"
+
+msgid "Documentation"
+msgstr "文档"
+
+msgid "GitHub"
+msgstr "GitHub"
+
+msgid "OpenListUI"
+msgstr "OpenListUI"
+
+msgid "Report Issue"
+msgstr "报告问题"
+
+msgid "Quick Links"
+msgstr "快速链接"
+
+msgid "API Documentation"
+msgstr "API 文档"
+
+msgid "FAQ"
+msgstr "常见问题"
+
+msgid "Please wait..."
+msgstr "请稍候..."
+
+msgid "Core stopped"
+msgstr "核心已停止"
+
+msgid "Core started"
+msgstr "核心已启动"
+
+msgid "Operation failed"
+msgstr "操作失败"
+
+msgid "Restarting core..."
+msgstr "正在重启核心..."
+
+msgid "Core restarted successfully"
+msgstr "核心重启成功"
+
+msgid "Restart failed"
+msgstr "重启失败"
+
+msgid "External access setting updated"
+msgstr "外部访问设置已更新"
+
+msgid "Failed to update external access setting"
+msgstr "更新外部访问设置失败"
+
+msgid "Auto start setting updated"
+msgstr "自启动设置已更新"
+
+msgid "Failed to update auto start setting"
+msgstr "更新自启动设置失败"
+
+msgid "Running"
+msgstr "运行中"
 
 msgid "OpenList Overview"
 msgstr "OpenList 概览"
@@ -735,8 +888,89 @@ msgstr "输入要设置的新密码"
 msgid "Enter a new password to set for OpenList administrator. Password will not be saved in config file."
 msgstr "输入要为 OpenList 管理员设置的新密码。密码不会保存在配置文件中。"
 
+msgid "System Architecture"
+msgstr "系统架构"
+
+msgid "Download Path"
+msgstr "下载路径"
+
+msgid "Updates available"
+msgstr "有可用更新"
+
+msgid "Failed to check for updates. Please check your network connection."
+msgstr "检查更新失败。请检查您的网络连接。"
+
+msgid "Updating..."
+msgstr "更新中..."
+
+msgid "Getting Download Link..."
+msgstr "获取下载链接中..."
+
+msgid "Complete OpenList binary with all features"
+msgstr "包含所有功能的完整 OpenList 二进制文件"
+
+msgid "Lightweight binary for resource-constrained devices"
+msgstr "适用于资源受限设备的轻量级二进制文件"
+
+msgid "Unknown error"
+msgstr "未知错误"
+
 msgid "Allow External Access"
 msgstr "允许外部访问"
 
 msgid "Allow access from external networks (Controls OpenWrt firewall rules for HTTP, FTP, SFTP and S3 ports based on config.json)"
 msgstr "允许来自外部网络的访问（根据 config.json 控制 OpenWrt 防火墙规则，开放 HTTP、FTP、SFTP 和 S3 端口）"
+
+msgid "Showing"
+msgstr "显示"
+
+msgid "log lines"
+msgstr "行日志"
+
+msgid "Current Size"
+msgstr "当前大小"
+
+msgid "Max Size"
+msgstr "最大大小"
+
+msgid "Max Backups"
+msgstr "最大备份"
+
+msgid "files"
+msgstr "个"
+
+msgid "days"
+msgstr "天"
+
+msgid "Yes"
+msgstr "是"
+
+msgid "No"
+msgstr "否"
+
+msgid "Failed to get configuration info"
+msgstr "获取配置信息失败"
+
+msgid "Loading logs"
+msgstr "正在加载日志"
+
+msgid "Failed to get logs: Server not responding"
+msgstr "获取日志失败：服务器无响应"
+
+msgid "Failed to get logs: Invalid response format"
+msgstr "获取日志失败：响应格式错误"
+
+msgid "Failed to get logs: Network error (status code"
+msgstr "获取日志失败：网络错误 (状态码"
+
+msgid "Are you sure you want to clear the logs"
+msgstr "确认要清除日志吗"
+
+msgid "Stop Auto Refresh"
+msgstr "停止自动刷新"
+
+msgid "Continue"
+msgstr "继续"
+
+msgid "Operation failed"
+msgstr "操作失败"

@@ -329,7 +329,7 @@ function updateLogDisplay() {
 
 function updateLogStats(filtered, total) {
     var stats = document.getElementById('log-stats');
-    stats.innerHTML = '显示 ' + filtered + ' / ' + total + ' 行日志';
+    stats.innerHTML = '<%:Showing%> ' + filtered + ' / ' + total + ' <%:log lines%>';
 }
 
 function loadLogConfig() {
@@ -342,21 +342,21 @@ function loadLogConfig() {
                 try {
                     var response = JSON.parse(xhr.responseText);
                     if (response.success) {
-                        var configInfo = '路径: ' + response.log_path + 
-                                       ' | 当前大小: ' + (response.current_size || 0) + 'KB' +
-                                       ' | 最大大小: ' + response.max_size + 'MB' +
-                                       ' | 最大备份: ' + response.max_backups + '个' +
-                                       ' | 保留天数: ' + response.max_age + '天' +
-                                       ' | 压缩: ' + (response.compress ? '是' : '否') +
-                                       ' | 启用: ' + (response.enable ? '是' : '否');
+                        var configInfo = '<%:Path%>: ' + response.log_path +
+                    ' | <%:Current Size%>: ' + (response.current_size || 0) + 'KB' +
+                    ' | <%:Max Size%>: ' + response.max_size + 'MB' +
+                    ' | <%:Max Backups%>: ' + response.max_backups + '<%:files%>' +
+                    ' | <%:Retention Days%>: ' + response.max_age + '<%:days%>' +
+                    ' | <%:Compress%>: ' + (response.compress ? '<%:Yes%>' : '<%:No%>') +
+                    ' | <%:Enabled%>: ' + (response.enable ? '<%:Yes%>' : '<%:No%>');
                         document.getElementById('log-config-info').textContent = configInfo;
                     }
                 } catch (e) {
                     console.error('Error parsing log config response:', e);
-                    document.getElementById('log-config-info').textContent = '获取配置信息失败';
+                    document.getElementById('log-config-info').textContent = '<%:Failed to get configuration info%>';
                 }
             } else {
-                document.getElementById('log-config-info').textContent = '获取配置信息失败';
+                document.getElementById('log-config-info').textContent = '<%:Failed to get configuration info%>';
             }
         }
     };
@@ -369,7 +369,7 @@ function loadLogs() {
     var lines = document.getElementById('log-lines').value || 100;
     
     // 显示加载状态
-    document.getElementById('log-stats').innerHTML = '正在加载日志...';
+        document.getElementById('log-stats').innerHTML = '<%:Loading logs%>...';
     
     XHR.get('<%=url("admin/services/openlistui/logs_get")%>?source=' + source + '&lines=' + lines, null, function(x, data) {
         if (data && data.logs) {
@@ -382,20 +382,20 @@ function loadLogs() {
             logBuffer = [];
             updateLogDisplay();
             if (!data) {
-                showMessage('error', '获取日志失败：服务器无响应');
+                showMessage('error', '<%:Failed to get logs: Server not responding%>');
             } else if (!data.logs) {
-                showMessage('error', '获取日志失败：响应格式错误');
+                showMessage('error', '<%:Failed to get logs: Invalid response format%>');
             }
         }
     }, function(x, error) {
         logBuffer = [];
         updateLogDisplay();
-        showMessage('error', '获取日志失败：网络错误 (状态码: ' + x.status + ')');
+        showMessage('error', '<%:Failed to get logs: Network error (status code%>: ' + x.status + ')');
     });
 }
 
 function clearLogs() {
-    if (confirm('确认要清除日志吗？')) {
+    if (confirm('<%:Are you sure you want to clear the logs%>？')) {
         var source = document.getElementById('log-source').value;
         XHR.post('<%=url("admin/services/openlistui/logs_clear")%>?source=' + source, null, function(x, data) {
             if (data && data.success) {
@@ -404,7 +404,7 @@ function clearLogs() {
                 updateLogDisplay();
                 setTimeout(loadLogs, 1000);
             } else {
-                showMessage('error', data ? data.message : '操作失败');
+                showMessage('error', data ? data.message : '<%:Operation failed%>');
             }
         });
     }
@@ -416,12 +416,12 @@ function toggleAutoRefresh() {
     var indicator = document.getElementById('refresh-indicator');
     
     if (logAutoRefresh) {
-        button.textContent = '停止自动刷新';
+        button.textContent = '<%:Stop Auto Refresh%>';
         button.className = 'btn btn-warning';
         indicator.className = 'status-indicator status-running';
         logRefreshInterval = setInterval(loadLogs, 3000);
     } else {
-        button.textContent = '自动刷新';
+        button.textContent = '<%:Auto Refresh%>';
         button.className = 'btn btn-success';
         indicator.className = 'status-indicator status-stopped';
         if (logRefreshInterval) {
@@ -438,12 +438,12 @@ function togglePause() {
     var indicator = document.getElementById('pause-indicator');
     
     if (logPaused) {
-        button.textContent = '继续';
+        button.textContent = '<%:Continue%>';
         button.className = 'btn btn-warning';
         container.className = 'log-display paused';
         indicator.className = 'status-indicator status-paused';
     } else {
-        button.textContent = '暂停';
+        button.textContent = '<%:Pause%>';
         button.className = 'btn btn-primary';
         container.className = 'log-display';
         indicator.className = 'status-indicator status-running';
@@ -512,14 +512,14 @@ window.addEventListener('beforeunload', function() {
         <div class="logs-container">
                 <div class="log-controls">
                     <div class="form-inline">
-                        <label for="log-source">日志源:</label>
+                        <label for="log-source"><%:Log Source%>:</label>
                         <select id="log-source" class="form-control">
-                            <option value="all">全部</option>
+                            <option value="all"><%:All Logs%></option>
                             <option value="openlist">OpenList</option>
                             <option value="openlistui">OpenListUI</option>
                         </select>
                         
-                        <label for="log-lines">显示行数:</label>
+                        <label for="log-lines"><%:Display Lines%>:</label>
                         <select id="log-lines" class="form-control">
                             <option value="50">50</option>
                             <option value="100" selected>100</option>
@@ -528,39 +528,39 @@ window.addEventListener('beforeunload', function() {
                             <option value="1000">1000</option>
                         </select>
                         
-                        <label for="log-filter">过滤:</label>
+                        <label for="log-filter"><%:Filter%>:</label>
                         <select id="log-filter" class="form-control">
-                            <option value="all">全部</option>
-                            <option value="error">错误</option>
-                            <option value="warning">警告</option>
-                            <option value="info">信息</option>
+                            <option value="all"><%:All%></option>
+                            <option value="error"><%:Error%></option>
+                            <option value="warning"><%:Warning%></option>
+                            <option value="info"><%:Info%></option>
                         </select>
                         
                         <div class="btn-group">
                             <button id="auto-refresh-btn" class="btn btn-success" onclick="toggleAutoRefresh()">
                                 <span id="refresh-indicator" class="status-indicator status-stopped"></span>
-                                自动刷新
+                                <%:Auto Refresh%>
                             </button>
                             
                             <button id="pause-btn" class="btn btn-primary" onclick="togglePause()">
                                 <span id="pause-indicator" class="status-indicator status-running"></span>
-                                暂停
+                                <%:Pause%>
                             </button>
                             
-                            <button class="btn btn-primary" onclick="loadLogs()">手动刷新</button>
-                            <button class="btn btn-warning" onclick="downloadLogs()">下载日志</button>
-                            <button class="btn btn-danger" onclick="clearLogs()">清除日志</button>
+                            <button class="btn btn-primary" onclick="loadLogs()"><%:Manual Refresh%></button>
+                            <button class="btn btn-warning" onclick="downloadLogs()"><%:Download Logs%></button>
+                            <button class="btn btn-danger" onclick="clearLogs()"><%:Clear Logs%></button>
                         </div>
                     </div>
                 </div>
                 
                 <div id="log-info" class="log-info" style="margin-bottom: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px; font-size: 12px; color: #666;">
-                    <strong>日志配置信息:</strong> <span id="log-config-info">加载中...</span>
+                    <strong><%:Log Configuration Info%>:</strong> <span id="log-config-info"><%:Loading%>...</span>
                 </div>
                 
                 <div id="log-container" class="log-display"></div>
                 
-                <div id="log-stats" class="log-stats">加载中...</div>
+                <div id="log-stats" class="log-stats"><%:Loading%>...</div>
         </div>
     </div>
 </div>
