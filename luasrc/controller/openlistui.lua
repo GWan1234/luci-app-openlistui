@@ -654,7 +654,8 @@ function index()
     --     return
     -- end
 
-    -- 翻译函数已在文件顶部定义
+    -- 在函数内部定义翻译函数引用
+    local _ = require("luci.i18n").translate
 
     local page = luci.dispatcher.entry({"admin", "services", "openlistui"}, luci.dispatcher.firstchild(), _("OpenList UI"), 60)
     page.dependent = false
