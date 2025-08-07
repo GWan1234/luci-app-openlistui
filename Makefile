@@ -4,8 +4,35 @@ PKG_NAME:=luci-app-openlistui
 
 # 自动版本管理系统
 PKG_VERSION_BASE:=1.0
-PKG_VERSION_PATCH:=$(shell if [ -d .git ]; then git rev-list --count HEAD 2>/dev/null || echo "1"; else echo "1"; fi)
-PKG_VERSION:=$(PKG_VERSION_BASE).$(PKG_VERSION_PATCH)
+GITHUB_REPO:=drfccv/luci-app-openlistui
+
+# 动态版本管理
+PKG_VERSION:=$(shell \
+	if [ -n "$$CUSTOM_VERSION" ]; then \
+		echo "$$CUSTOM_VERSION"; \
+	else \
+		latest_version=$$(curl -s "https://api.github.com/repos/$(GITHUB_REPO)/releases/latest" 2>/dev/null | grep '"tag_name":' | sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/' | sed 's/^v//'); \
+		if [ -n "$$latest_version" ]; then \
+			github_base=$$(echo "$$latest_version" | cut -d'.' -f1-2); \
+			if [ "$$github_base" = "$(PKG_VERSION_BASE)" ]; then \
+				github_patch=$$(echo "$$latest_version" | cut -d'.' -f3); \
+				next_patch=$$((github_patch + 1)); \
+				echo "$(PKG_VERSION_BASE).$$next_patch"; \
+			else \
+				patch_version=1; \
+				if [ -d .git ]; then \
+					patch_version=$$(git rev-list --count HEAD 2>/dev/null || echo "1"); \
+				fi; \
+				echo "$(PKG_VERSION_BASE).$$patch_version"; \
+			fi; \
+		else \
+			patch_version=1; \
+			if [ -d .git ]; then \
+				patch_version=$$(git rev-list --count HEAD 2>/dev/null || echo "1"); \
+			fi; \
+			echo "$(PKG_VERSION_BASE).$$patch_version"; \
+		fi; \
+	fi)
 
 # 构建信息
 PKG_RELEASE:=$(shell date +%Y%m%d%H%M)

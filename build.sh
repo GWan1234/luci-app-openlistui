@@ -15,6 +15,7 @@ NC='\033[0m'
 PKG_NAME="luci-app-openlistui"
 DEFAULT_ARCH="x86_64"
 GITHUB_REPO="drfccv/luci-app-openlistui"
+GITHUB_TOKEN=""  # GitHub API Token，用于避免rate limit
 
 # 支持的架构（使用清华大学镜像源）
 declare -A ARCH_CONFIG=(
@@ -34,19 +35,40 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 # 获取GitHub releases的最新版本号
 get_latest_github_version() {
     local repo="$1"
+    local token="$2"
     local latest_version=""
+    local auth_header=""
+    
+    # 如果提供了token，添加认证头
+    if [ -n "$token" ]; then
+        auth_header="Authorization: token $token"
+    fi
     
     # 尝试使用curl获取最新release信息
     if command -v curl &> /dev/null; then
-        latest_version=$(curl -s "https://api.github.com/repos/${repo}/releases/latest" 2>/dev/null | \
-            grep '"tag_name":' | \
-            sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/' | \
-            sed 's/^v//')
+        if [ -n "$auth_header" ]; then
+            latest_version=$(curl -s -H "$auth_header" "https://api.github.com/repos/${repo}/releases/latest" 2>/dev/null | \
+                grep '"tag_name":' | \
+                sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/' | \
+                sed 's/^v//')
+        else
+            latest_version=$(curl -s "https://api.github.com/repos/${repo}/releases/latest" 2>/dev/null | \
+                grep '"tag_name":' | \
+                sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/' | \
+                sed 's/^v//')
+        fi
     elif command -v wget &> /dev/null; then
-        latest_version=$(wget -qO- "https://api.github.com/repos/${repo}/releases/latest" 2>/dev/null | \
-            grep '"tag_name":' | \
-            sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/' | \
-            sed 's/^v//')
+        if [ -n "$auth_header" ]; then
+            latest_version=$(wget --header="$auth_header" -qO- "https://api.github.com/repos/${repo}/releases/latest" 2>/dev/null | \
+                grep '"tag_name":' | \
+                sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/' | \
+                sed 's/^v//')
+        else
+            latest_version=$(wget -qO- "https://api.github.com/repos/${repo}/releases/latest" 2>/dev/null | \
+                grep '"tag_name":' | \
+                sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/' | \
+                sed 's/^v//')
+        fi
     fi
     
     if [ -n "$latest_version" ] && [ "$latest_version" != "null" ]; then
@@ -63,11 +85,12 @@ generate_next_version() {
     local verbose="${3:-false}"
     
     if [ -z "$latest_github_version" ]; then
-        # 如果无法获取GitHub版本，使用传统的git commit计数方式
+        # 如果无法获取GitHub版本，使用git commit计数
         local patch_version="1"
         if [ -d ".git" ]; then
             patch_version=$(git rev-list --count HEAD 2>/dev/null || echo "1")
         fi
+        [ "$verbose" = "true" ] && log_info "无法获取GitHub版本，使用git计数: ${base_version}.${patch_version}" >&2
         echo "${base_version}.${patch_version}"
         return
     fi
@@ -79,16 +102,16 @@ generate_next_version() {
     # 如果base version相同，生成下一个小版本号
     if [ "$github_base" = "$base_version" ]; then
         local next_patch=$((github_patch + 1))
+        [ "$verbose" = "true" ] && log_info "检测到相同base version，生成下一个小版本: ${base_version}.${next_patch}" >&2
         echo "${base_version}.${next_patch}"
-        [ "$verbose" = "true" ] && log_info "检测到相同base version，生成下一个小版本: ${base_version}.${next_patch}"
     else
         # 如果base version不同，使用git commit计数
         local patch_version="1"
         if [ -d ".git" ]; then
             patch_version=$(git rev-list --count HEAD 2>/dev/null || echo "1")
         fi
+        [ "$verbose" = "true" ] && log_info "base version不同，使用git计数: ${base_version}.${patch_version}" >&2
         echo "${base_version}.${patch_version}"
-        [ "$verbose" = "true" ] && log_info "base version不同，使用git计数: ${base_version}.${patch_version}"
     fi
 }
 
@@ -107,8 +130,10 @@ show_help() {
     echo "  all      - 编译所有支持的架构"
     echo ""
     echo "构建选项:"
-    echo "  -f, --fast   - 跳过feeds更新 (适用于重复构建)"
-    echo "  --dev        - 开发模式，为包文件名添加时间戳"
+    echo "  -f, --fast       - 跳过feeds更新 (适用于重复构建)"
+    echo "  --dev            - 开发模式，为包文件名添加时间戳"
+    echo "  -v, --version VERSION - 指定版本号 (例如: 1.2.3)"
+    echo "  -t, --token TOKEN     - GitHub API token (避免rate limit)"
     echo ""
     echo "其他选项:"
     echo "  version  - 显示版本信息 (包含GitHub releases检测)"
@@ -118,10 +143,14 @@ show_help() {
     echo "版本管理:"
     echo "  脚本会自动检测 GitHub releases 的最新版本号"
     echo "  如果 base version 相同，会自动生成下一个小版本号"
+    echo "  可以使用 -v 参数指定自定义版本号"
+    echo "  使用 -t 参数提供 GitHub token 避免 API rate limit"
     echo "  GitHub仓库: https://github.com/$GITHUB_REPO/releases"
     echo ""
     echo "示例:"
-    echo "  $0              # 编译默认架构 (x86_64)"
+    echo "  $0                          # 编译默认架构 (x86_64)"
+    echo "  $0 -v 1.2.3 x86_64         # 使用指定版本号编译"
+    echo "  $0 -t ghp_xxx... all       # 使用GitHub token编译所有架构"
     echo "  $0 aarch64      # 编译 ARM64"
     echo "  $0 all          # 编译所有支持的架构"
     echo "  $0 -f x86_64    # 快速编译 x86_64 (跳过feeds更新)"
@@ -135,6 +164,7 @@ show_help() {
 build_all_packages() {
     local fast_mode="${1:-false}"
     local dev_mode="${2:-false}"
+    local custom_version="${3:-}"
     local all_archs=("x86_64" "aarch64" "mips" "mipsel" "arm" "armv7")
     local success_count=0
     local failed_archs=()
@@ -147,7 +177,7 @@ build_all_packages() {
         log_info "[${success_count}/${#all_archs[@]}] 开始编译架构: $arch"
         echo "========================================"
         
-        if build_package "$arch" "$fast_mode" "$dev_mode"; then
+        if build_package "$arch" "$fast_mode" "$dev_mode" "$custom_version"; then
             ((success_count++))
             log_success "架构 $arch 编译成功"
         else
@@ -177,6 +207,7 @@ build_package() {
     local target_arch="${1:-$DEFAULT_ARCH}"
     local fast_mode="${2:-false}"
     local dev_mode="${3:-false}"
+    local custom_version="${4:-}"
     
     if [[ -z "${ARCH_CONFIG[$target_arch]}" ]]; then
         log_error "不支持的架构: $target_arch"
@@ -278,19 +309,30 @@ build_package() {
     mkdir -p ../../build-logs
     local build_log="../../build-logs/build-${target_arch}-$(date +%Y%m%d-%H%M%S).log"
     
-    if make package/luci-app-openlistui/compile V=s 2>&1 | tee "$build_log"; then
+    # 设置自定义版本号环境变量
+    local make_env=""
+    if [ -n "$custom_version" ]; then
+        make_env="CUSTOM_VERSION=$custom_version"
+        log_info "设置自定义版本号: $custom_version"
+    fi
+    
+    if eval "$make_env make package/luci-app-openlistui/compile V=s" 2>&1 | tee "$build_log"; then
         # 查找并复制IPK文件
         mkdir -p ../../output
         local ipk_file=$(find bin -name "*luci-app-openlistui*.ipk" | head -1)
         if [ -n "$ipk_file" ]; then
-            # 从Makefile提取版本号并检测GitHub最新版本
+            # 版本号处理
             local version="unknown"
-            if [ -f "../../Makefile" ]; then
+            if [ -n "$custom_version" ]; then
+                # 使用自定义版本号
+                version="$custom_version"
+                log_info "使用自定义版本号: $version"
+            elif [ -f "../../Makefile" ]; then
                 local base_version=$(grep "^PKG_VERSION_BASE:=" ../../Makefile | head -1 | cut -d'=' -f2 | tr -d ' \n\r')
                 if [ -n "$base_version" ]; then
                     # 获取GitHub最新版本
                     log_info "检测GitHub releases最新版本..."
-                    local latest_github_version=$(get_latest_github_version "$GITHUB_REPO")
+                    local latest_github_version=$(get_latest_github_version "$GITHUB_REPO" "$GITHUB_TOKEN")
                     # 生成新版本号
                     version=$(generate_next_version "$base_version" "$latest_github_version" "true")
                 fi
@@ -369,7 +411,7 @@ show_version() {
             echo "GitHub Release Information:"
             local base_version=$(grep "^PKG_VERSION_BASE:=" Makefile | head -1 | cut -d'=' -f2 | tr -d ' \n\r')
             echo "正在检测GitHub releases..."
-            local latest_github_version=$(get_latest_github_version "$GITHUB_REPO")
+            local latest_github_version=$(get_latest_github_version "$GITHUB_REPO" "$GITHUB_TOKEN")
             if [ -n "$latest_github_version" ]; then
                 echo "Latest GitHub Release: $latest_github_version"
                 local next_version=$(generate_next_version "$base_version" "$latest_github_version")
@@ -384,11 +426,8 @@ show_version() {
                 fi
             else
                 log_warning "无法获取GitHub releases信息"
-                local patch_version="1"
-                if [ -d ".git" ]; then
-                    patch_version=$(git rev-list --count HEAD 2>/dev/null || echo "1")
-                fi
-                echo "Next Build Version: ${base_version}.${patch_version}"
+                local next_version=$(generate_next_version "$base_version" "")
+                echo "Next Build Version: $next_version"
             fi
         else
             log_warning "make 命令不可用，从Makefile手动提取版本信息"
@@ -424,7 +463,7 @@ show_version() {
             echo ""
             echo "GitHub Release Information:"
             echo "正在检测GitHub releases..."
-             local latest_github_version=$(get_latest_github_version "$GITHUB_REPO")
+             local latest_github_version=$(get_latest_github_version "$GITHUB_REPO" "$GITHUB_TOKEN")
              if [ -n "$latest_github_version" ]; then
                  echo "Latest GitHub Release: $latest_github_version"
                  local next_version=$(generate_next_version "$base_version" "$latest_github_version")
@@ -439,7 +478,8 @@ show_version() {
                  fi
              else
                 log_warning "无法获取GitHub releases信息"
-                echo "Next Build Version: ${base_version}.${patch_version}"
+                local next_version=$(generate_next_version "$base_version" "")
+                echo "Next Build Version: $next_version"
             fi
         fi
     else
@@ -455,6 +495,7 @@ main() {
     local arch="$DEFAULT_ARCH"
     local build_all=false
     local dev_mode=false
+    local custom_version=""
     
     # 解析参数
     while [[ $# -gt 0 ]]; do
@@ -467,11 +508,29 @@ main() {
                 dev_mode=true
                 shift
                 ;;
+            "-v"|"--version")
+                if [[ $# -lt 2 ]] || [[ $2 == -* ]]; then
+                    show_version
+                    exit 0
+                else
+                    custom_version="$2"
+                    shift 2
+                fi
+                ;;
+            "-t"|"--token")
+                if [[ $# -lt 2 ]] || [[ $2 == -* ]]; then
+                    log_error "--token 参数需要提供 GitHub token"
+                    exit 1
+                else
+                    GITHUB_TOKEN="$2"
+                    shift 2
+                fi
+                ;;
             "help"|"-h"|"--help")
                 show_help
                 exit 0
                 ;;
-            "version"|"-v"|"--version")
+            "version")
                 show_version
                 exit 0
                 ;;
@@ -492,9 +551,9 @@ main() {
     
     # 构建包
     if [ "$build_all" = "true" ]; then
-        build_all_packages "$fast_mode" "$dev_mode"
+        build_all_packages "$fast_mode" "$dev_mode" "$custom_version"
     else
-        build_package "$arch" "$fast_mode" "$dev_mode"
+        build_package "$arch" "$fast_mode" "$dev_mode" "$custom_version"
     fi
 }
 
