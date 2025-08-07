@@ -1,3 +1,9 @@
+<div align="center">
+  <img style="width: 128px; height: 128px;" src="https://raw.githubusercontent.com/OpenListTeam/Logo/main/logo.svg" alt="logo" />
+  
+  <p><em>OpenList WebUI for OpenWrt - 一个独立的 OpenList (Alist分支) OpenWrt LuCI 管理界面</em></p>
+</div>
+
 # OpenList WebUI for OpenWrt
 
 一个独立的 OpenList (Alist分支) OpenWrt LuCI 管理界面，提供直观的文件管理和系统监控功能。无需依赖额外的 openlist 核心包，可独立运行。
