@@ -656,6 +656,7 @@ function index()
 
     -- 设置翻译域
     luci.i18n.loadc("openlistui")
+    local _ = luci.i18n.translate
 
     local page = luci.dispatcher.entry({"admin", "services", "openlistui"}, luci.dispatcher.firstchild(), _("OpenList UI"), 60)
     page.dependent = false
