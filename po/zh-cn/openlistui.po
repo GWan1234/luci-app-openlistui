@@ -613,6 +613,42 @@ msgstr "系统启动时自动启动 OpenList 服务"
 msgid "Optional. Enter proxy address to accelerate GitHub access. Example: https://ghfast.top"
 msgstr "可选。输入代理地址以加速 GitHub 访问。示例：https://ghfast.top"
 
+msgid "Invalid response format"
+msgstr "无效的响应格式"
+
+msgid "Network error"
+msgstr "网络错误"
+
+msgid "View Releases"
+msgstr "查看发布"
+
+msgid "No Update Available"
+msgstr "无可用更新"
+
+msgid "Installing Update..."
+msgstr "正在安装更新..."
+
+msgid "Update installed successfully! Please refresh the page."
+msgstr "更新安装成功！请刷新页面。"
+
+msgid "Update installation failed"
+msgstr "更新安装失败"
+
+msgid "Failed to install update"
+msgstr "安装更新失败"
+
+msgid "Unknown error"
+msgstr "未知错误"
+
+msgid "Download Update"
+msgstr "下载更新"
+
+msgid "No Update Needed"
+msgstr "无需更新"
+
+msgid "No Update Available"
+msgstr "无可用更新"
+
 msgid "Administrator Password"
 msgstr "管理员密码"
 
