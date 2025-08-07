@@ -10,7 +10,6 @@ local http = require "luci.http"
 local util = require "luci.util"
 local fs = require "nixio.fs"
 local i18n = require "luci.i18n"
-local _ = i18n.translate
 
 -- Forward declarations removed - functions defined before use
 
@@ -378,6 +377,9 @@ function execute_curl_with_cache(url, cache_key, extra_params)
     -- Build curl command
     local cmd = 'curl -s --connect-timeout 10 --max-time 30'
     
+    -- Add User-Agent header (required by GitHub API)
+    cmd = cmd .. ' -H "User-Agent: luci-app-openlistui/1.0"'
+    
     -- Add GitHub token authentication for API calls
     if url:match("api%.github%.com") then
         local github_token = get_github_token()
@@ -497,6 +499,37 @@ function write_json_response(success, message, debug_info)
     http.prepare_content("application/json")
     http.write(json_response)
     http.close()
+end
+
+-- Map system architecture to LuCI IPK architecture naming
+function map_arch_to_luci_ipk(arch)
+    local arch_map = {
+        -- System architecture mappings for LuCI IPK files
+        ["linux-musl-amd64"] = "x86_64",
+        ["linux-musl-arm64"] = "aarch64", 
+        ["linux-musleabihf-armv7l"] = "armv7",
+        ["linux-musleabihf-armv6"] = "arm",
+        ["linux-musl-mips"] = "mips",
+        ["linux-musl-mipsle"] = "mipsel",
+        
+        -- Common variations
+        ["x86_64"] = "x86_64",
+        ["amd64"] = "x86_64",
+        ["arm64"] = "aarch64",
+        ["aarch64"] = "aarch64",
+        ["armv7l"] = "armv7",
+        ["mips"] = "mips",
+        ["mipsel"] = "mipsel"
+    }
+    
+    local mapped = arch_map[arch]
+    if mapped then
+        log_openlistui_operation("LUCI_ARCH_MAP", "Mapped architecture for LuCI: " .. arch .. " -> " .. mapped)
+        return mapped
+    else
+        log_openlistui_operation("LUCI_ARCH_MAP", "Unknown architecture for LuCI: " .. arch .. ", using fallback: x86_64")
+        return "x86_64"  -- fallback
+    end
 end
 
 -- Map system architecture to GitHub release architecture naming
@@ -655,8 +688,9 @@ function index()
     --     return
     -- end
 
-    -- 翻译函数已在模块顶部定义
-    -- local _ = i18n.translate
+    -- 在函数内部导入 i18n 模块并定义翻译函数
+    local i18n = require "luci.i18n"
+    local _ = i18n.translate
     
     local page = luci.dispatcher.entry({"admin", "services", "openlistui"}, luci.dispatcher.firstchild(), _("OpenList UI"), 60)
     page.dependent = false
@@ -2159,8 +2193,8 @@ function get_luci_download_url(version)
         return nil
     end
     
-    -- Use the same architecture mapping as OpenList core
-    local mapped_arch = map_architecture(arch)
+    -- Use LuCI-specific architecture mapping
+    local mapped_arch = map_arch_to_luci_ipk(arch)
     if not mapped_arch then
         log_openlistui_operation("LUCI_DOWNLOAD_URL", "Unsupported architecture: " .. arch)
         return nil
@@ -2173,7 +2207,7 @@ function get_luci_download_url(version)
     end
     
     -- Build download URL for IPK file
-    local ipk_filename = string.format("luci-app-openlistui_%s_%s.ipk", mapped_arch, version)
+    local ipk_filename = string.format("luci-app-openlistui_v%s_%s.ipk", version, mapped_arch)
     local download_url = string.format("https://github.com/drfccv/luci-app-openlistui/releases/download/%s/%s", 
         version_tag, ipk_filename)
     
@@ -2857,37 +2891,32 @@ end
 -- Download OpenList binary
 function download_openlist(version, use_lite)
     if not version or version == "unknown" or version == "Network error" then
-        log_openlistui_operation("DOWNLOAD_ERROR", "Invalid version specified: " .. (version or "nil"))
+        log_openlistui_operation("CORE_UPDATE_ERROR", "Invalid version specified: " .. (version or "nil"))
         return false, "Invalid version specified"
     end
     
+    log_openlistui_operation("CORE_UPDATE_DOWNLOAD", "Downloading OpenList " .. version .. " (" .. (use_lite and "lite" or "full") .. ")")
+    
     local arch = get_system_arch()
     if not arch then
-        log_openlistui_operation("DOWNLOAD_ERROR", "Unsupported architecture")
+        log_openlistui_operation("CORE_UPDATE_ERROR", "Unsupported architecture detected")
         return false, "Unsupported architecture"
     end
     
-    -- Map architecture to GitHub release naming convention
     local github_arch = map_arch_to_github_release(arch)
-    
-    log_openlistui_operation("DOWNLOAD_INFO", "Downloading OpenList version " .. version .. " for architecture " .. arch .. " (mapped to " .. github_arch .. ")")
-    
     local kernel_save_path = get_kernel_save_path()
     sys.exec("mkdir -p '" .. kernel_save_path .. "'")
     
-    -- Build download URL using mapped architecture
     local suffix = use_lite and "-lite" or ""
     local filename = "openlist-" .. github_arch .. suffix
     
-    -- Determine file extension based on OS
-    local file_extension = ".tar.gz"  -- Default for Linux
+    local file_extension = ".tar.gz"
     if github_arch:match("windows") then
         file_extension = ".zip"
     end
     
     local full_filename = filename .. file_extension
     
-    -- Check if version starts with 'v', add if not
     local version_tag = version
     if not version_tag:match("^v") then
         version_tag = "v" .. version_tag
@@ -2895,7 +2924,6 @@ function download_openlist(version, use_lite)
     
     local download_url = string.format("https://github.com/OpenListTeam/OpenList/releases/download/%s/%s", version_tag, full_filename)
     
-    -- Alternative URLs to try (with different naming patterns)
     local urls = {
         download_url,
         string.format("https://github.com/OpenListTeam/OpenList/releases/download/%s/openlist-%s%s%s", version_tag, github_arch, suffix, file_extension),
@@ -2904,131 +2932,165 @@ function download_openlist(version, use_lite)
     }
     
     for i, url in ipairs(urls) do
-        log_openlistui_operation("DOWNLOAD_ATTEMPT", "Trying URL " .. i .. ": " .. url)
+        log_openlistui_operation("CORE_UPDATE_DOWNLOAD", "Attempt " .. i .. "/" .. #urls .. ": " .. url)
         
         -- Generate temp file name with correct extension based on URL
         local temp_file = kernel_save_path .. "/openlist-download" .. file_extension
+        log_openlistui_operation("CORE_UPDATE_DOWNLOAD", "Temporary file: " .. temp_file)
         
         -- Apply proxy to the URL
         local proxied_url = apply_proxy_to_url(url)
         if proxied_url ~= url then
-            log_openlistui_operation("DOWNLOAD_PROXY", "Applied proxy to URL " .. i .. ": " .. proxied_url)
+            log_openlistui_operation("CORE_UPDATE_PROXY", "Applied proxy to URL " .. i .. ": " .. proxied_url)
+        else
+            log_openlistui_operation("CORE_UPDATE_DOWNLOAD", "No proxy configured for URL " .. i)
         end
         
         -- First check if URL exists with HEAD request
+        log_openlistui_operation("CORE_UPDATE_DOWNLOAD", "Checking URL accessibility with HEAD request")
         local head_cmd = string.format("curl -I --connect-timeout 10 --max-time 30 '%s' 2>/dev/null | head -1", proxied_url)
         local head_response = util.trim(sys.exec(head_cmd))
-        log_openlistui_operation("DOWNLOAD_HEAD", "HEAD response for URL " .. i .. ": " .. (head_response or "empty"))
+        log_openlistui_operation("CORE_UPDATE_DOWNLOAD", "HEAD response for URL " .. i .. ": " .. (head_response or "empty"))
         
         -- Accept both 200 OK and 302 redirect (common for GitHub releases)
         if head_response and (head_response:match("200") or head_response:match("302")) then
+            log_openlistui_operation("CORE_UPDATE_DOWNLOAD", "URL " .. i .. " is accessible, starting download")
             local cmd = string.format("curl -L --connect-timeout 30 --max-time 300 -o '%s' '%s' 2>/dev/null", temp_file, proxied_url)
+            log_openlistui_operation("CORE_UPDATE_DOWNLOAD", "Download command: " .. cmd)
             local ret = sys.call(cmd)
             
             if ret == 0 and fs.access(temp_file) then
                 local file_size = fs.stat(temp_file)
                 if file_size and file_size.size > 1000 then -- At least 1KB
-                    log_openlistui_operation("DOWNLOAD_SUCCESS", "Downloaded from " .. url .. " via proxy (" .. file_size.size .. " bytes)")
+                    log_openlistui_operation("CORE_UPDATE_SUCCESS", "Successfully downloaded from URL " .. i .. " (" .. file_size.size .. " bytes)")
                     return true, temp_file
                 else
-                    log_openlistui_operation("DOWNLOAD_ERROR", "Downloaded file too small: " .. (file_size and file_size.size or "0") .. " bytes")
+                    log_openlistui_operation("CORE_UPDATE_ERROR", "Downloaded file too small: " .. (file_size and file_size.size or "0") .. " bytes")
                 end
             else
-                log_openlistui_operation("DOWNLOAD_ERROR", "Download failed for URL " .. i .. ", curl returned: " .. ret)
+                log_openlistui_operation("CORE_UPDATE_ERROR", "Download failed for URL " .. i .. ", curl returned: " .. ret)
             end
         else
-            log_openlistui_operation("DOWNLOAD_SKIP", "Skipping URL " .. i .. " - not accessible")
+            log_openlistui_operation("CORE_UPDATE_WARNING", "Skipping URL " .. i .. " - not accessible (HEAD response: " .. (head_response or "none") .. ")")
         end
         
         -- Clean up failed download attempt
+        log_openlistui_operation("CORE_UPDATE_DOWNLOAD", "Cleaning up failed download attempt")
         sys.exec("rm -f '" .. temp_file .. "'")
     end
     
-    log_openlistui_operation("DOWNLOAD_FAILED", "All download URLs failed")
+    log_openlistui_operation("CORE_UPDATE_ERROR", "All " .. #urls .. " download URLs failed for Core update")
     return false, "Failed to download OpenList binary from all available sources"
 end
 
 -- Install OpenList binary
 function install_openlist(binary_path)
+    log_openlistui_operation("CORE_UPDATE_INSTALL", "Starting Core installation process")
+    log_openlistui_operation("CORE_UPDATE_INSTALL", "Binary path: " .. (binary_path or "none"))
+    
     if not binary_path or not fs.access(binary_path) then
+        log_openlistui_operation("CORE_UPDATE_ERROR", "Binary file not found or not accessible: " .. (binary_path or "none"))
         return false, "Binary file not found"
     end
     
     local install_dir = get_kernel_save_path()
     local final_path = install_dir .. "/openlist"
+    log_openlistui_operation("CORE_UPDATE_INSTALL", "Install directory: " .. install_dir)
+    log_openlistui_operation("CORE_UPDATE_INSTALL", "Final binary path: " .. final_path)
     
     -- Make sure install directory exists
+    log_openlistui_operation("CORE_UPDATE_INSTALL", "Creating install directory if needed")
     sys.exec("mkdir -p '" .. install_dir .. "'")
     
-    log_openlistui_operation("INSTALL_EXTRACT", "Extracting downloaded file: " .. binary_path)
+    log_openlistui_operation("CORE_UPDATE_INSTALL", "Extracting downloaded file: " .. binary_path)
     
     -- Check if the file is a tar.gz archive
     if binary_path:match("%.tar%.gz$") then
+        log_openlistui_operation("CORE_UPDATE_INSTALL", "Detected tar.gz archive format")
         -- Extract tar.gz file
         local extract_cmd = string.format("cd '%s' && tar -xzf '%s'", install_dir, binary_path)
+        log_openlistui_operation("CORE_UPDATE_INSTALL", "Extract command: " .. extract_cmd)
         local extract_ret = sys.call(extract_cmd)
         if extract_ret ~= 0 then
-            log_openlistui_operation("INSTALL_ERROR", "Failed to extract tar.gz file")
+            log_openlistui_operation("CORE_UPDATE_ERROR", "Failed to extract tar.gz file, return code: " .. extract_ret)
             return false, "Failed to extract downloaded archive"
         end
+        log_openlistui_operation("CORE_UPDATE_INSTALL", "tar.gz extraction completed successfully")
         
         -- Look for the extracted binary (it should be named 'openlist')
         local extracted_binary = install_dir .. "/openlist"
+        log_openlistui_operation("CORE_UPDATE_INSTALL", "Looking for extracted binary at: " .. extracted_binary)
         if not fs.access(extracted_binary) then
-            log_openlistui_operation("INSTALL_ERROR", "Extracted binary not found at expected location")
+            log_openlistui_operation("CORE_UPDATE_ERROR", "Extracted binary not found at expected location: " .. extracted_binary)
             return false, "Extracted binary not found"
         end
         
-        log_openlistui_operation("INSTALL_SUCCESS", "Successfully extracted binary to " .. extracted_binary)
+        log_openlistui_operation("CORE_UPDATE_SUCCESS", "Successfully extracted binary to " .. extracted_binary)
         
     elseif binary_path:match("%.zip$") then
+        log_openlistui_operation("CORE_UPDATE_INSTALL", "Detected zip archive format")
         -- Extract zip file
         local extract_cmd = string.format("cd '%s' && unzip -o '%s'", install_dir, binary_path)
+        log_openlistui_operation("CORE_UPDATE_INSTALL", "Extract command: " .. extract_cmd)
         local extract_ret = sys.call(extract_cmd)
         if extract_ret ~= 0 then
-            log_openlistui_operation("INSTALL_ERROR", "Failed to extract zip file")
+            log_openlistui_operation("CORE_UPDATE_ERROR", "Failed to extract zip file, return code: " .. extract_ret)
             return false, "Failed to extract downloaded archive"
         end
+        log_openlistui_operation("CORE_UPDATE_INSTALL", "zip extraction completed successfully")
         
         -- Look for the extracted binary
         local extracted_binary = install_dir .. "/openlist"
+        log_openlistui_operation("CORE_UPDATE_INSTALL", "Looking for extracted binary at: " .. extracted_binary)
         if not fs.access(extracted_binary) then
-            log_openlistui_operation("INSTALL_ERROR", "Extracted binary not found at expected location")
+            log_openlistui_operation("CORE_UPDATE_ERROR", "Extracted binary not found at expected location: " .. extracted_binary)
             return false, "Extracted binary not found"
         end
         
-        log_openlistui_operation("INSTALL_SUCCESS", "Successfully extracted binary to " .. extracted_binary)
+        log_openlistui_operation("CORE_UPDATE_SUCCESS", "Successfully extracted binary to " .. extracted_binary)
         
     else
+        log_openlistui_operation("CORE_UPDATE_INSTALL", "Detected direct binary file, copying to final location")
         -- Assume it's already a binary file, just copy it
         local copy_cmd = string.format("cp '%s' '%s'", binary_path, final_path)
+        log_openlistui_operation("CORE_UPDATE_INSTALL", "Copy command: " .. copy_cmd)
         local ret = sys.call(copy_cmd)
         if ret ~= 0 then
+            log_openlistui_operation("CORE_UPDATE_ERROR", "Failed to copy binary to installation directory, return code: " .. ret)
             return false, "Failed to copy binary to installation directory"
         end
-        log_openlistui_operation("INSTALL_COPY", "Copied binary to " .. final_path)
+        log_openlistui_operation("CORE_UPDATE_SUCCESS", "Successfully copied binary to " .. final_path)
     end
     
     -- Make executable
+    log_openlistui_operation("CORE_UPDATE_INSTALL", "Setting executable permissions for binary")
     sys.exec("chmod +x '" .. final_path .. "'")
     
     -- Verify installation
+    log_openlistui_operation("CORE_UPDATE_INSTALL", "Verifying installation at: " .. final_path)
     if not fs.access(final_path) then
+        log_openlistui_operation("CORE_UPDATE_ERROR", "Installation verification failed - binary not accessible")
         return false, "Installation verification failed"
     end
+    log_openlistui_operation("CORE_UPDATE_INSTALL", "Binary file verification passed")
     
     -- Test if binary is working
     local test_cmd = final_path .. " --version >/dev/null 2>&1"
     local test_ret = sys.call(test_cmd)
     if test_ret ~= 0 then
-        log_openlistui_operation("INSTALL_WARNING", "Binary installed but version check failed")
+        log_openlistui_operation("CORE_UPDATE_ERROR", "Binary installed but functionality test failed (return code: " .. test_ret .. ")")
+        return false, "Binary installed but not functional (version check failed)"
+    else
+        log_openlistui_operation("CORE_UPDATE_INSTALL", "Binary functionality test passed")
     end
     
     -- Update kernel save path in UCI to point to where we installed it
+    log_openlistui_operation("CORE_UPDATE_INSTALL", "Updating UCI configuration with install path: " .. install_dir)
     uci:set("openlistui", "integration", "kernel_save_path", install_dir)
     uci:commit("openlistui")
+    log_openlistui_operation("CORE_UPDATE_INSTALL", "UCI configuration updated successfully")
     
-    log_openlistui_operation("INSTALL_COMPLETE", "OpenList binary installed to " .. final_path)
+    log_openlistui_operation("CORE_UPDATE_SUCCESS", "Core installation completed successfully at " .. final_path)
     return true, "Installation completed successfully"
 end
 
@@ -3280,8 +3342,6 @@ end
 function action_check_luci_updates()
     local result = {}
     
-    log_openlistui_operation("LUCI_UPDATE_CHECK", "Checking for LuCI app updates")
-    
     local current_version = get_current_luci_version()
     local latest_version = get_latest_luci_version()
     
@@ -3289,6 +3349,9 @@ function action_check_luci_updates()
     if current_version ~= "unknown" and latest_version ~= "unknown" and 
        current_version ~= latest_version then
         update_available = true
+        log_openlistui_operation("LUCI_UPDATE_CHECK", "Update available: " .. current_version .. " -> " .. latest_version)
+    else
+        log_openlistui_operation("LUCI_UPDATE_CHECK", "No update needed or version check failed")
     end
     
     result.success = true
@@ -3309,10 +3372,9 @@ end
 function action_download_luci_update()
     local result = {}
     
-    log_openlistui_operation("LUCI_UPDATE_DOWNLOAD", "Starting LuCI app update download")
-    
     local latest_version = get_latest_luci_version()
     if latest_version == "unknown" then
+        log_openlistui_operation("LUCI_UPDATE_ERROR", "Failed to get latest version information")
         result.success = false
         result.message = "Unable to get latest version information"
         http.prepare_content("application/json")
@@ -3322,6 +3384,7 @@ function action_download_luci_update()
     
     local arch = get_system_arch()
     if not arch then
+        log_openlistui_operation("LUCI_UPDATE_ERROR", "Unable to detect system architecture")
         result.success = false
         result.message = "Unable to detect system architecture"
         http.prepare_content("application/json")
@@ -3329,9 +3392,9 @@ function action_download_luci_update()
         return
     end
     
-    -- Use the same architecture mapping as OpenList core
-    local mapped_arch = map_architecture(arch)
+    local mapped_arch = map_arch_to_luci_ipk(arch)
     if not mapped_arch then
+        log_openlistui_operation("LUCI_UPDATE_ERROR", "Unsupported architecture: " .. arch)
         result.success = false
         result.message = "Unsupported architecture: " .. arch
         http.prepare_content("application/json")
@@ -3339,33 +3402,33 @@ function action_download_luci_update()
         return
     end
     
-    -- Build download URL for IPK file
     local version_tag = "v" .. latest_version
-    local ipk_filename = string.format("luci-app-openlistui_%s_%s.ipk", mapped_arch, latest_version)
+    local ipk_filename = string.format("luci-app-openlistui_v%s_%s.ipk", latest_version, mapped_arch)
     local download_url = string.format("https://github.com/drfccv/luci-app-openlistui/releases/download/%s/%s", 
         version_tag, ipk_filename)
+    
+    log_openlistui_operation("LUCI_UPDATE_DOWNLOAD", "Downloading LuCI update: " .. latest_version .. " (" .. mapped_arch .. ")")
     
     local temp_dir = "/tmp/luci-app-update"
     local temp_file = temp_dir .. "/" .. ipk_filename
     
-    -- Create temp directory
     sys.exec("mkdir -p " .. temp_dir)
     
-    -- Download IPK file using the same method as OpenList core
-    log_openlistui_operation("LUCI_UPDATE_DOWNLOAD", "Downloading from: " .. download_url)
-    local download_success = download_file_with_retry(download_url, temp_file)
+    local proxied_url = apply_proxy_to_url(download_url)
+    local download_cmd = string.format("curl -L --connect-timeout 30 --max-time 300 -o '%s' '%s' 2>/dev/null", temp_file, proxied_url)
+    local download_result = sys.call(download_cmd)
     
-    if not download_success then
+    if download_result ~= 0 then
+        log_openlistui_operation("LUCI_UPDATE_ERROR", "Download failed with curl error code: " .. download_result)
         result.success = false
-        result.message = "Failed to download update package"
-        log_openlistui_operation("LUCI_UPDATE_FAILED", "Download failed")
+        result.message = "Failed to download update package (curl error: " .. download_result .. ")"
         http.prepare_content("application/json")
         http.write_json(result)
         return
     end
     
-    -- Verify file was downloaded
     if not fs.access(temp_file) then
+        log_openlistui_operation("LUCI_UPDATE_ERROR", "Downloaded file not found")
         result.success = false
         result.message = "Downloaded file not found"
         http.prepare_content("application/json")
@@ -3373,8 +3436,18 @@ function action_download_luci_update()
         return
     end
     
-    -- Install the package
-    log_openlistui_operation("LUCI_UPDATE_INSTALL", "Installing package: " .. temp_file)
+    local file_stat = fs.stat(temp_file)
+    if file_stat then
+        if file_stat.size < 1000 then
+            log_openlistui_operation("LUCI_UPDATE_ERROR", "Downloaded file too small, likely corrupted")
+            result.success = false
+            result.message = "Downloaded file appears to be corrupted (too small)"
+            http.prepare_content("application/json")
+            http.write_json(result)
+            return
+        end
+    end
+    
     local install_cmd = string.format("opkg install --force-reinstall '%s'", temp_file)
     local install_result = sys.call(install_cmd)
     
@@ -3383,17 +3456,20 @@ function action_download_luci_update()
         result.message = "LuCI app updated successfully to version " .. latest_version
         result.new_version = latest_version
         
-        -- Clean up
         sys.exec("rm -f " .. temp_file)
         
-        -- Restart uhttpd to reload the interface
-        sys.exec("/etc/init.d/uhttpd restart")
+        local restart_result = sys.call("/etc/init.d/uhttpd restart")
+        if restart_result ~= 0 then
+            log_openlistui_operation("LUCI_UPDATE_WARNING", "uhttpd restart failed with code: " .. restart_result)
+        end
         
-        log_openlistui_operation("LUCI_UPDATE_SUCCESS", "Update completed successfully")
+        log_openlistui_operation("LUCI_UPDATE_SUCCESS", "LuCI app updated to version " .. latest_version)
     else
+        log_openlistui_operation("LUCI_UPDATE_ERROR", "Package installation failed with opkg error code: " .. install_result)
         result.success = false
         result.message = "Failed to install update package"
-        log_openlistui_operation("LUCI_UPDATE_FAILED", "Installation failed with code: " .. install_result)
+        
+        sys.exec("rm -f " .. temp_file)
     end
     
     http.prepare_content("application/json")
