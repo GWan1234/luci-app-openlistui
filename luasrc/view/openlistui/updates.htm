@@ -436,18 +436,14 @@ function component_update(btn, component) {
                    {component: component, core_type: c}, function(x, result) {
                 console.log('Component update response:', result, x);
                 
-                try {
-                    var response = JSON.parse(x.responseText || '{}');
-                    console.log('Parsed response:', response);
-                    
-                    if (response.success) {
-                        alert('Update successful: ' + (response.message || 'Component updated'));
+                if (x && x.status == 200) {
+                    if (result && result.success) {
+                        alert('Update successful: ' + (result.message || 'Component updated'));
                     } else {
-                        alert('Update failed: ' + (response.message || 'Unknown error'));
+                        alert('Update failed: ' + (result && result.message ? result.message : 'Unknown error'));
                     }
-                } catch (e) {
-                    console.error('Failed to parse response:', e);
-                    alert('Update completed, but response parsing failed');
+                } else {
+                    alert('Update failed: Network error (Status: ' + (x ? x.status : 'unknown') + ')');
                 }
                 
                 btn.value = '<%:Check And Update%>';
@@ -526,41 +522,69 @@ function checkLuciUpdates() {
     btn.value = '<%:Checking...%>';
     btn.disabled = true;
     
+    console.log('Starting LuCI update check...');
+    
     // Call the specific LuCI update check endpoint
     XHR.get('<%=luci.dispatcher.build_url("admin", "services", "openlistui", "check_luci_updates")%>', null, function(x, result) {
+        console.log('LuCI update check response:', x ? x.status : 'no response', result);
+        
         btn.value = '<%:Check And Updates%>';
         btn.disabled = false;
         
-        if (x && x.status == 200 && result.success) {
-            // Update LuCI app version display
-            var currentVersionElement = document.getElementById('luci-current-version');
-            var latestVersionElement = document.getElementById('luci-latest-version');
-            var updateStatusElement = document.getElementById('luci-update-status');
-            var installBtn = document.getElementById('luci-install-btn');
-            
-            if (currentVersionElement) currentVersionElement.textContent = result.current_version || '<%:Unknown%>';
-            if (latestVersionElement) latestVersionElement.textContent = result.latest_version || '<%:Unknown%>';
-            
-            if (result.update_available) {
-                if (updateStatusElement) updateStatusElement.innerHTML = '<span style="color: orange;"><%:Update Available%></span>';
+        if (x && x.status == 200) {
+            if (result && result.success) {
+                // Update LuCI app version display
+                var currentVersionElement = document.getElementById('luci-current-version');
+                var latestVersionElement = document.getElementById('luci-latest-version');
+                var updateStatusElement = document.getElementById('luci-update-status');
+                var githubLinkElement = document.getElementById('luci-github-link');
+                
+                if (currentVersionElement) currentVersionElement.textContent = result.current_version || '<%:Unknown%>';
+                if (latestVersionElement) latestVersionElement.textContent = result.latest_version || '<%:Unknown%>';
+                
+                if (result.update_available) {
+                    if (updateStatusElement) updateStatusElement.innerHTML = '<span style="color: orange;"><%:Update Available%></span>';
+                    
+                    // Auto install when update is available (like OpenList Core)
+                    console.log('Update available, starting auto installation...');
+                    autoInstallLuciUpdate();
+                } else {
+                    if (updateStatusElement) updateStatusElement.innerHTML = '<span style="color: green;"><%:Up to Date%></span>';
+                }
+                
+                // Update GitHub link
+                if (githubLinkElement && result.download_url) {
+                    githubLinkElement.innerHTML = '<a href="' + result.download_url + '" target="_blank" style="color: #0066cc;"><%:View Releases%></a>';
+                }
+                
+                console.log('LuCI update check completed successfully');
             } else {
-                if (updateStatusElement) updateStatusElement.innerHTML = '<span style="color: green;"><%:Up to Date%></span>';
+                var errorMsg = result && result.message ? result.message : '<%:Invalid response format%>';
+                console.error('LuCI update check failed:', errorMsg);
+                alert('<%:Failed to check for updates%>: ' + errorMsg);
             }
         } else {
-            alert('<%:Failed to check for updates%>: ' + (result.message || '<%:Unknown error%>'));
+            var statusCode = x ? x.status : 'unknown';
+            var errorMsg = '<%:Network error%> (Status: ' + statusCode + ')';
+            console.error('LuCI update check network error:', statusCode);
+            alert('<%:Failed to check for updates%>: ' + errorMsg);
         }
     });
 }
 
 function installLuciUpdate() {
     var btn = document.getElementById('luci-install-btn');
-    btn.value = '<%:Getting Download Link...%>';
-    btn.disabled = true;
+    if (btn) {
+        btn.value = '<%:Getting Download Link...%>';
+        btn.disabled = true;
+    }
     
     XHR.get('<%=luci.dispatcher.build_url("admin", "services", "openlistui", "get_download_url")%>', 
            {component: 'luci'}, function(x, status) {
-        btn.value = '<%:Download%>';
-        btn.disabled = false;
+        if (btn) {
+            btn.value = '<%:Download%>';
+            btn.disabled = false;
+        }
         if (x && x.status == 200 && status.download_url) {
             window.open(status.download_url, '_blank');
         } else {
@@ -568,6 +592,32 @@ function installLuciUpdate() {
         }
     });
     return false;
+}
+
+function autoInstallLuciUpdate() {
+    var checkBtn = document.getElementById('luci-check-btn');
+    if (checkBtn) {
+        checkBtn.value = '<%:Installing Update...%>';
+        checkBtn.disabled = true;
+    }
+    
+    XHR.get('<%=luci.dispatcher.build_url("admin", "services", "openlistui", "download_luci_update")%>', 
+           null, function(x, status) {
+        if (checkBtn) {
+            checkBtn.value = '<%:Check And Updates%>';
+            checkBtn.disabled = false;
+        }
+        if (x && x.status == 200) {
+            if (status.success) {
+                alert('<%:Update installed successfully! Please refresh the page.%>');
+                location.reload();
+            } else {
+                location.reload();
+            }
+        } else {
+            location.reload();
+        }
+    });
 }
 
 // LuCI updates are now handled by the main polling mechanism
